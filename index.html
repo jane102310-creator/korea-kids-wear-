@@ -24,9 +24,8 @@
     body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; padding-bottom: 120px; }
     .container { max-width: 480px; margin: 0 auto; }
     
-    .header { background: var(--card-bg); padding: 18px; border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 16px; text-align: center; }
+    .header { background: var(--card-bg); padding: 18px; border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 16px; text-align: center; border: 1px solid var(--border-color); }
     .header-title h1 { font-size: 20px; font-weight: 700; color: var(--text-main); }
-    .sync-status { display: none; }
 
     .global-buyer-bar { background: var(--card-bg); padding: 12px 16px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
     .global-buyer-bar label { font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--text-sub); }
@@ -40,7 +39,7 @@
     .filter-pill { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-sub); padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; box-shadow: var(--shadow); transition: all 0.2s; }
     .filter-pill.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-    /* 首頁商品列表改為簡潔的卡片風格（僅圖片與名稱） */
+    /* 商品列表改為簡潔的卡片風格（僅圖片與名稱） */
     .item-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .item-card { background: var(--card-bg); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--border-color); cursor: pointer; transition: transform 0.2s; display: flex; flex-direction: column; }
     .item-card:hover { transform: translateY(-3px); }
@@ -51,9 +50,9 @@
     .item-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
     .tag { font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 500; }
     .tag-category { background-color: var(--accent-light); color: var(--text-sub); }
-    .tag-buyer { background-color: #E8E2D8; color: #5A4D41; }
+    .tag-buyer { background-color: #E8E2D8; color: #5A4D41; cursor: pointer; }
 
-    .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: #FFFFFF; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 0; z-index: 999; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--card-bg); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 0; z-index: 999; box-shadow: 0 -4px 12px rgba(90,77,65,0.05); }
     .nav-item { background: none; border: none; display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--text-sub); cursor: pointer; gap: 3px; flex: 1; }
     .nav-item.active { color: var(--accent); font-weight: bold; }
     .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -72,7 +71,7 @@
     .progress-box { background: #FFF; border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; margin: 6px 0; font-size: 12px; }
     .progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
     .progress-controls { display: flex; align-items: center; gap: 6px; }
-    .btn-mini-qty { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border-color); background: #fff; font-weight: bold; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+    .btn-mini-qty { width: 22px; height: 22px; border-radius: 4px; border: 1px solid var(--border-color); background: #fff; font-weight: bold; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; color: var(--text-main); }
 
     .customer-card { background: #FAFAFA; border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; margin-bottom: 12px; }
     .customer-name { font-size: 15px; font-weight: bold; color: var(--accent); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
@@ -91,14 +90,13 @@
     .btn-save-manual { width: 100%; background-color: #28A745; color: white; border: none; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; margin-bottom: 8px; }
     .form-group { margin-bottom: 12px; }
     .form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-sub); }
-    .form-input, .form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px; background: #FAFAFA; outline: none; }
+    .form-input, .form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px; background: #FAFAFA; outline: none; color: var(--text-main); }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
       <div class="header-title"><h1 id="headerTitleDisplay">韓國童裝連線代購</h1></div>
-      <div class="sync-status">🟢 雲端即時監聽中</div>
     </div>
 
     <!-- 頂部常駐買家姓名輸入欄 -->
@@ -171,7 +169,7 @@
   </nav>
 
   <!-- 點擊商品彈出的詳細選購 Modal -->
-  <div class="modal-overlay" id="productDetailModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1300;">
+  <div class="modal-overlay" id="productDetailModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1300;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="font-size: 18px; font-weight: 700;">👕 選擇尺寸與登記</h2>
@@ -197,7 +195,7 @@
   </div>
 
   <!-- 修改訂單數量 Modal -->
-  <div class="modal-overlay" id="editOrderModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1200;">
+  <div class="modal-overlay" id="editOrderModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1200;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="font-size: 18px; font-weight: 700;">修改登記尺寸/數量</h2>
@@ -217,7 +215,7 @@
   </div>
 
   <!-- 修改商品資料 Modal -->
-  <div class="modal-overlay" id="editProdModal" style="z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end;">
+  <div class="modal-overlay" id="editProdModal" style="z-index: 1100; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"><h2 style="font-size: 18px; font-weight: 700;">✏️ 編輯童裝資料</h2><button class="btn-close" onclick="closeEditProdModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button></div>
       <div class="form-group"><label class="form-label">款式名稱 *</label><input type="text" id="editProdName" class="form-input" /></div>
@@ -245,7 +243,7 @@
   </div>
 
   <!-- 管理者登入 Modal -->
-  <div class="modal-overlay" id="loginModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1000;">
+  <div class="modal-overlay" id="loginModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1000;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"><h2 style="font-size: 18px; font-weight: 700;">🔐 管理者登入</h2><button class="btn-close" onclick="closeModal('loginModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button></div>
       <div class="form-group">
@@ -257,7 +255,7 @@
   </div>
 
   <!-- 管理者後台 Modal -->
-  <div class="modal-overlay" id="adminModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1000;">
+  <div class="modal-overlay" id="adminModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1000;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;"><h2 style="font-size: 18px; font-weight: 700;">🔐 童裝管理後台</h2><button class="btn-close" onclick="closeModal('adminModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button></div>
       
@@ -351,7 +349,7 @@
           <button class="btn-submit" onclick="saveNewPassword()">更新管理者密碼</button>
         </div>
         <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
-          <button class="btn-submit" style="background-color: #007BFF;" onclick="exportToExcel()">📥 匯出所有訂單至 Excel (CSV)</button>
+          <button class="btn-submit" style="background-color: var(--accent);" onclick="exportToExcel()">📥 匯出所有訂單至 Excel (CSV)</button>
         </div>
       </div>
     </div>
@@ -684,9 +682,9 @@
         row.style.cssText = "display:flex; justify-content:space-between; align-items:center; background:#FAFAFA; padding:8px 12px; border-radius:10px; border:1px solid var(--border-color);";
         row.innerHTML = '<span style="font-size:14px; font-weight:600;">尺寸 ' + unitName + '</span>' +
           '<div style="display:flex; align-items:center; gap:8px;">' +
-            '<button class="btn-qty-mini" onclick="adjustModalQty(\'' + unitName + '\', -1)">-</button>' +
+            '<button class="btn-mini-qty" onclick="adjustModalQty(\'' + unitName + '\', -1)">-</button>' +
             '<span class="qty-display-mini" id="modal_qty_' + unitName + '">0</span>' +
-            '<button class="btn-qty-mini plus" onclick="adjustModalQty(\'' + unitName + '\', 1)">+</button>' +
+            '<button class="btn-mini-qty" onclick="adjustModalQty(\'' + unitName + '\', 1)">+</button>' +
           '</div>';
         sizeControlsEl.appendChild(row);
       }
@@ -771,7 +769,7 @@
         var buyerTagsHTML = '';
         for (var j = 0; j < product.buyers.length; j++) {
           var b = product.buyers[j];
-          buyerTagsHTML += '<span class="tag tag-buyer">👤 ' + b.name + ' ' + b.count + '件(' + (b.unit || '100') + ')</span>';
+          buyerTagsHTML += '<span class="tag tag-buyer" onclick="event.stopPropagation(); openAdminEditOrderModal(' + i + ', \'' + b.name + '\', \'' + (b.unit || '100') + '\', ' + b.count + ')">👤 ' + b.name + ' ' + b.count + '件(' + (b.unit || '100') + ')</span>';
         }
 
         card.innerHTML = '<div class="item-img-wrap"><img src="' + imgSrc + '" class="item-img" alt="" /></div>' +
@@ -1030,16 +1028,16 @@
       for (var i = 0; i < completedOrders.length; i++) {
         var comp = completedOrders[i];
         var card = document.createElement('div');
-        card.className = 'customer-card'; card.style.background = '#F4F9F4'; card.style.borderColor = '#C3E6CB';
+        card.className = 'customer-card'; card.style.background = '#F4EBE1'; card.style.borderColor = '#E8E2D8';
         var itemsHtml = ''; var totalNt = 0;
         if (comp.items) {
           comp.items.forEach(it => {
             totalNt += (parseInt(it.ntPrice) || 0) * it.count;
-            itemsHtml += '<div style="font-size:13px; margin-bottom:4px; color:#155724;">• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b> (NT$ ' + ((parseInt(it.ntPrice) || 0) * it.count).toLocaleString() + ')</div>';
+            itemsHtml += '<div style="font-size:13px; margin-bottom:4px; color:var(--text-main);">• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b> (NT$ ' + ((parseInt(it.ntPrice) || 0) * it.count).toLocaleString() + ')</div>';
           });
         }
-        card.innerHTML = '<div class="customer-name"><span style="color:#155724;">✅ ' + comp.buyerName + ' (總計 NT$ ' + totalNt.toLocaleString() + ') <small style="font-size:11px; color:#666;">(' + comp.completedAt + ')</small></span>' +
-          '<div style="display:flex; gap:4px;"><button class="btn-edit-order" style="background:#6c757d;" onclick="restoreCompletedOrder(' + i + ')">↩️ 恢復</button>' +
+        card.innerHTML = '<div class="customer-name"><span style="color:var(--text-main);">✅ ' + comp.buyerName + ' (總計 NT$ ' + totalNt.toLocaleString() + ') <small style="font-size:11px; color:#666;">(' + comp.completedAt + ')</small></span>' +
+          '<div style="display:flex; gap:4px;"><button class="btn-edit-order" style="background:var(--accent);" onclick="restoreCompletedOrder(' + i + ')">↩️ 恢復</button>' +
           '<button class="btn-del-prod" style="padding:2px 8px; font-size:11px;" onclick="deleteCompletedOrder(' + i + ')">刪除</button></div></div>' + itemsHtml;
         compList.appendChild(card);
       }
