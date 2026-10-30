@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitleText">韓國童裝連線代購</title>
   
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (App, Firestore, Auth) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
   <style>
     :root {
@@ -27,9 +28,11 @@
     .header { background: var(--card-bg); padding: 18px; border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 16px; text-align: center; border: 1px solid var(--border-color); }
     .header-title h1 { font-size: 20px; font-weight: 700; color: var(--text-main); }
 
-    .global-buyer-bar { background: var(--card-bg); padding: 12px 16px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
-    .global-buyer-bar label { font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--text-sub); }
-    .global-buyer-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 14px; background: #FAFAFA; outline: none; }
+    /* 會員專區頂部列 */
+    .member-top-bar { background: var(--card-bg); padding: 12px 16px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .member-info { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+    .btn-login-open { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
+    .btn-logout { background: #D9534F; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
 
     .page-section { display: none; }
     .page-section.active { display: block; }
@@ -86,6 +89,7 @@
     .btn-complete-order { background: #28A745; color: white; border: none; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; }
     .btn-edit-order { background: var(--accent); color: white; border: none; padding: 2px 8px; font-size: 11px; border-radius: 6px; cursor: pointer; }
     .btn-submit { width: 100%; background-color: var(--accent); color: white; border: none; padding: 14px; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+    .btn-google { width: 100%; background-color: #DB4437; color: white; border: none; padding: 12px; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-save-manual { width: 100%; background-color: #28A745; color: white; border: none; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 12px; margin-bottom: 8px; }
     .form-group { margin-bottom: 12px; }
     .form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-sub); }
@@ -98,10 +102,10 @@
       <div class="header-title"><h1 id="headerTitleDisplay">韓國童裝連線代購</h1></div>
     </div>
 
-    <!-- 頂部常駐買家姓名輸入欄 -->
-    <div class="global-buyer-bar">
-      <label for="globalBuyerInput">👤 買家姓名：</label>
-      <input type="text" id="globalBuyerInput" class="global-buyer-input" placeholder="請先輸入您的名字..." />
+    <!-- 會員狀態/登入橫幅 -->
+    <div class="member-top-bar" id="memberTopBar">
+      <div class="member-info" id="memberInfoDisplay">👤 尚未登入（請先登入或註冊會員）</div>
+      <button class="btn-login-open" id="memberAuthBtn" onclick="openAuthModal()">會員登入 / 註冊</button>
     </div>
     
     <!-- 1. 首頁分頁 -->
@@ -166,6 +170,40 @@
       <span>管理者</span>
     </button>
   </nav>
+
+  <!-- 會員登入 / 註冊彈跳視窗 Modal -->
+  <div class="modal-overlay" id="authModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1400;">
+    <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 id="authModalTitle" style="font-size: 18px; font-weight: 700;">🔐 會員登入 / 註冊</h2>
+        <button class="btn-close" onclick="closeModal('authModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
+      </div>
+      
+      <div class="form-group" id="nameFieldGroup" style="display: none;">
+        <label class="form-label">您的暱稱 / 買家姓名 *</label>
+        <input type="text" id="authDisplayName" class="form-input" placeholder="例如：王小明或媽咪A" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">電子信箱 (Email) *</label>
+        <input type="email" id="authEmail" class="form-input" placeholder="name@example.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">密碼 *</label>
+        <input type="password" id="authPassword" class="form-input" placeholder="請輸入密碼 (至少6碼)" />
+      </div>
+
+      <button class="btn-submit" id="authSubmitBtn" onclick="handleEmailAuth()">登入帳號</button>
+      <button class="btn-google" onclick="handleGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#ffffff" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.8 5 12 5zm6.6 7c0-.4 0-.8-.1-1.2H12v2.4h3.7c-.2 1-.8 1.9-1.7 2.5l2.7 2.1c1.6-1.5 2.7-3.7 2.7-6.3zM12 23c3.2 0 6-1.1 8-3l-2.7-2.1c-1.1.7-2.5 1.2-4.3 1.2-3.2 0-5.8-2.3-6.7-5.3L1.5 16.5C3.4 20.3 7.4 23 12 23z"/></svg>
+        使用 Google 帳號快速登入
+      </button>
+
+      <div style="text-align: center; margin-top: 16px; font-size: 13px;">
+        <span id="authToggleText" style="color: #666;">還沒有帳號？</span>
+        <a href="javascript:void(0);" onclick="toggleAuthMode()" style="color: var(--accent); font-weight: bold; text-decoration: none; margin-left: 6px;" id="authToggleBtn">點此註冊新會員</a>
+      </div>
+    </div>
+  </div>
 
   <!-- 點擊商品彈出的詳細選購 Modal -->
   <div class="modal-overlay" id="productDetailModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1300;">
@@ -369,6 +407,102 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    var currentUserDisplayName = "";
+    var isRegisterMode = false;
+
+    // 監聽 Firebase Auth 登入狀態
+    auth.onAuthStateChanged(user => {
+      var infoDisplay = document.getElementById('memberInfoDisplay');
+      var authBtn = document.getElementById('memberAuthBtn');
+      
+      if (user) {
+        currentUserDisplayName = user.displayName || user.email.split('@')[0];
+        infoDisplay.innerHTML = '👤 已登入：<b>' + currentUserDisplayName + '</b> <span style="font-size:11px; color:#666;">(' + user.email + ')</span>';
+        authBtn.innerText = '登出';
+        authBtn.setAttribute('onclick', 'handleLogout()');
+        authBtn.style.background = '#D9534F';
+      } else {
+        currentUserDisplayName = "";
+        infoDisplay.innerHTML = '👤 尚未登入（請先登入或註冊會員）';
+        authBtn.innerText = '會員登入 / 註冊';
+        authBtn.setAttribute('onclick', 'openAuthModal()');
+        authBtn.style.background = 'var(--accent)';
+      }
+    });
+
+    function openAuthModal() {
+      isRegisterMode = false;
+      document.getElementById('authModalTitle').innerText = '🔐 會員登入';
+      document.getElementById('nameFieldGroup').style.display = 'none';
+      document.getElementById('authSubmitBtn').innerText = '登入帳號';
+      document.getElementById('authToggleText').innerText = '還沒有帳號？';
+      document.getElementById('authToggleBtn').innerText = '點此註冊新會員';
+      document.getElementById('authModal').style.display = 'flex';
+    }
+
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      if (isRegisterMode) {
+        document.getElementById('authModalTitle').innerText = '📝 註冊新會員';
+        document.getElementById('nameFieldGroup').style.display = 'block';
+        document.getElementById('authSubmitBtn').innerText = '確認註冊';
+        document.getElementById('authToggleText').innerText = '已經有帳號了？';
+        document.getElementById('authToggleBtn').innerText = '點此登入';
+      } else {
+        document.getElementById('authModalTitle').innerText = '🔐 會員登入';
+        document.getElementById('nameFieldGroup').style.display = 'none';
+        document.getElementById('authSubmitBtn').innerText = '登入帳號';
+        document.getElementById('authToggleText').innerText = '還沒有帳號？';
+        document.getElementById('authToggleBtn').innerText = '點此註冊新會員';
+      }
+    }
+
+    function handleEmailAuth() {
+      var email = document.getElementById('authEmail').value.trim();
+      var password = document.getElementById('authPassword').value;
+      var displayName = document.getElementById('authDisplayName').value.trim();
+
+      if (!email || !password) { alert('請填寫完整 Email 與密碼！'); return; }
+
+      if (isRegisterMode) {
+        if (!displayName) { alert('請填寫您的暱稱/買家姓名！'); return; }
+        auth.createUserWithEmailAndPassword(email, password)
+          .then(result => {
+            return result.user.updateProfile({ displayName: displayName });
+          })
+          .then(() => {
+            alert('🎉 註冊成功並已登入！');
+            closeModal('authModal');
+            location.reload();
+          })
+          .catch(error => { alert('註冊失敗： ' + error.message); });
+      } else {
+        auth.signInWithEmailAndPassword(email, password)
+          .then(() => {
+            alert('✅ 登入成功！');
+            closeModal('authModal');
+          })
+          .catch(error => { alert('登入失敗： ' + error.message); });
+      }
+    }
+
+    function handleGoogleLogin() {
+      var provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider)
+        .then(result => {
+          alert('🎉 Google 登入成功！');
+          closeModal('authModal');
+        })
+        .catch(error => { alert('Google 登入失敗： ' + error.message); });
+    }
+
+    function handleLogout() {
+      auth.signOut().then(() => {
+        alert('已成功登出！');
+      });
+    }
 
     function handleImageUpload(inputElement, targetInputId) {
       var file = inputElement.files[0];
@@ -517,14 +651,13 @@
     }
 
     function submitWish() {
-      var buyerName = document.getElementById('globalBuyerInput').value.trim();
+      if (!currentUserDisplayName) { alert('請先登入會員才能許願！'); openAuthModal(); return; }
       var prodName = document.getElementById('wishProdName').value.trim();
       var note = document.getElementById('wishProdNote').value.trim();
 
-      if (!buyerName) { alert('請先在上方輸入您的名字！'); document.getElementById('globalBuyerInput').focus(); return; }
       if (!prodName) { alert('請填寫許願款式！'); return; }
 
-      wishList.unshift({ id: Date.now(), buyerName: buyerName, prodName: prodName, note: note, createdAt: new Date().toLocaleDateString() });
+      wishList.unshift({ id: Date.now(), buyerName: currentUserDisplayName, prodName: prodName, note: note, createdAt: new Date().toLocaleDateString() });
       document.getElementById('wishProdName').value = '';
       document.getElementById('wishProdNote').value = '';
       manualSaveData(false);
@@ -721,8 +854,7 @@
     }
 
     function submitModalCart() {
-      var buyerName = document.getElementById('globalBuyerInput').value.trim();
-      if (!buyerName) { alert('請先在上方輸入您的買家名字！'); document.getElementById('globalBuyerInput').focus(); return; }
+      if (!currentUserDisplayName) { alert('請先登入會員才能進行登記購買！'); openAuthModal(); return; }
 
       var unitNames = Object.keys(modalCartUnits);
       if (unitNames.length === 0) { alert('請至少選擇一個尺寸的數量！'); return; }
@@ -734,7 +866,7 @@
         var uName = unitNames[i];
         var qty = modalCartUnits[uName];
         if (qty > 0) {
-          p.buyers.push({ name: buyerName, count: qty, unit: uName, bought: 0 });
+          p.buyers.push({ name: currentUserDisplayName, count: qty, unit: uName, bought: 0 });
         }
       }
 
