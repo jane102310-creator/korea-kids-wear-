@@ -31,7 +31,6 @@
     .member-top-bar { background: var(--card-bg); padding: 12px 16px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
     .member-info { font-size: 13px; font-weight: 600; color: var(--text-sub); }
     .btn-login-open { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
-    .btn-logout { background: #D9534F; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
 
     .page-section { display: none; }
     .page-section.active { display: block; }
@@ -75,11 +74,6 @@
 
     .customer-card { background: #FAFAFA; border: 1px solid var(--border-color); padding: 14px; border-radius: 12px; margin-bottom: 12px; }
     .customer-name { font-size: 15px; font-weight: bold; color: var(--accent); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
-
-    .wish-card { background: #FFF; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: var(--shadow); }
-    .wish-title { font-size: 15px; font-weight: bold; color: var(--text-main); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-    .wish-note { font-size: 12px; color: var(--text-sub); margin-bottom: 6px; }
-    .wish-author { font-size: 11px; color: #999; }
 
     .admin-action-btns { display: flex; gap: 6px; margin-top: 8px; }
     .btn-edit-prod { background: var(--accent); color: white; border: none; padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
@@ -137,25 +131,6 @@
         <button class="btn-submit" onclick="submitCartOrder()">📦 確認送出訂單</button>
       </div>
     </div>
-
-    <!-- 4. 許願池分頁 -->
-    <div id="sectionWish" class="page-section">
-      <div style="background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 16px;">
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: var(--accent);">✨ 童裝許願池</div>
-        <div class="form-group">
-          <label class="form-label">想要許願尋找的款式 *</label>
-          <input type="text" id="wishProdName" class="form-input" placeholder="例如：韓國正韓素色刷毛大學T..." />
-        </div>
-        <div class="form-group">
-          <label class="form-label">尺寸/顏色備註 (選填)</label>
-          <input type="text" id="wishProdNote" class="form-input" placeholder="例如：要 110cm、米色..." />
-        </div>
-        <button class="btn-submit" onclick="submitWish()">🌟 送出許願</button>
-      </div>
-
-      <div style="font-size: 15px; font-weight: bold; margin-bottom: 10px; color: var(--text-main);">📋 大家正在許願的款式</div>
-      <div id="wishListUserDisplay"></div>
-    </div>
   </div>
 
   <!-- 底部導覽列 -->
@@ -173,10 +148,6 @@
       <span>購物車</span>
       <span class="cart-badge" id="cartBadge">0</span>
     </button>
-    <button class="nav-item" onclick="switchSection('wish', this)">
-      <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      <span>許願池</span>
-    </button>
     <button class="nav-item" onclick="openAdminPortal()">
       <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>管理者</span>
@@ -185,16 +156,23 @@
 
   <!-- 會員登入 / 註冊彈跳視窗 Modal -->
   <div class="modal-overlay" id="authModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1400;">
-    <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
+    <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 id="authModalTitle" style="font-size: 18px; font-weight: 700;">🔐 會員登入 / 註冊</h2>
         <button class="btn-close" onclick="closeModal('authModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
       </div>
       
-      <div class="form-group" id="nameFieldGroup" style="display: none;">
-        <label class="form-label">您的暱稱 / 買家姓名 *</label>
-        <input type="text" id="authDisplayName" class="form-input" placeholder="例如：王小明或媽咪A" />
+      <div id="registerFieldsGroup" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">全名 (真實姓名) *</label>
+          <input type="text" id="authFullName" class="form-input" placeholder="請輸入您的全名..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">電話號碼 *</label>
+          <input type="tel" id="authPhone" class="form-input" placeholder="0912345678" />
+        </div>
       </div>
+
       <div class="form-group">
         <label class="form-label">電子信箱 (Email) *</label>
         <input type="email" id="authEmail" class="form-input" placeholder="name@example.com" />
@@ -244,10 +222,10 @@
   <div class="modal-overlay" id="editOrderModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1200;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="font-size: 18px; font-weight: 700;">修改登記尺寸/數量</h2>
+        <h2 style="font-size: 18px; font-weight: 700;">修改訂單尺寸/數量</h2>
         <button class="btn-close" onclick="closeModal('editOrderModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
       </div>
-      <div class="form-group"><label class="form-label">買家姓名</label><input type="text" id="modalEditBuyerName" class="form-input" readonly style="background:#eee;" /></div>
+      <div class="form-group"><label class="form-label">買家姓名 / 電話</label><input type="text" id="modalEditBuyerName" class="form-input" readonly style="background:#eee;" /></div>
       <div class="form-group"><label class="form-label">童裝款式</label><input type="text" id="modalEditItemName" class="form-input" readonly style="background:#eee;" /></div>
       <div class="form-group">
         <label class="form-label">數量與尺寸/規格</label>
@@ -307,11 +285,10 @@
       
       <div class="admin-nav">
         <button class="admin-tab-btn active" id="tabBtn1" onclick="switchTab(1)">👕 商品管理</button>
-        <button class="admin-tab-btn" id="tabBtn7" onclick="switchTab(7)">📊 採購統計</button>
+        <button class="admin-tab-btn" id="tabBtn7" onclick="switchTab(7)">📋 訂單管理</button>
         <button class="admin-tab-btn" id="tabBtn8" onclick="switchTab(8)">💰 每日營收</button>
         <button class="admin-tab-btn" id="tabBtn2" onclick="switchTab(2)">👥 未完成訂單</button>
         <button class="admin-tab-btn" id="tabBtn6" onclick="switchTab(6)">🎉 已完成訂單</button>
-        <button class="admin-tab-btn" id="tabBtn5" onclick="switchTab(5)">🌟 許願池</button>
         <button class="admin-tab-btn" id="tabBtn3" onclick="switchTab(3)">➕ 新增款式</button>
         <button class="admin-tab-btn" id="tabBtn4" onclick="switchTab(4)">⚙️ 設定</button>
       </div>
@@ -322,7 +299,7 @@
         <button class="btn-save-manual" onclick="manualSaveData(true)">💾 手動同步至雲端</button>
       </div>
 
-      <!-- 分頁 7: 採購統計 -->
+      <!-- 分頁 7: 訂單管理 (取代原本採購統計) -->
       <div class="admin-section" id="adminSec7">
         <div id="adminStatsContentList" style="max-height: 32vh; overflow-y: auto; margin-bottom: 12px;"></div>
         <button class="btn-save-manual" onclick="manualSaveData(true)">💾 手動同步至雲端</button>
@@ -343,12 +320,6 @@
       <!-- 分頁 6: 已完成訂單 -->
       <div class="admin-section" id="adminSec6">
         <div id="completedOrdersContentList" style="max-height: 32vh; overflow-y: auto; margin-bottom: 12px;"></div>
-        <button class="btn-save-manual" onclick="manualSaveData(true)">💾 手動同步至雲端</button>
-      </div>
-
-      <!-- 分頁 5: 許願池管理 -->
-      <div class="admin-section" id="adminSec5">
-        <div id="adminWishListDisplay" style="max-height: 32vh; overflow-y: auto; margin-bottom: 12px;"></div>
         <button class="btn-save-manual" onclick="manualSaveData(true)">💾 手動同步至雲端</button>
       </div>
 
@@ -418,9 +389,9 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    var currentUserDisplayName = "";
+    var currentMemberInfo = { name: "", phone: "" };
     var isRegisterMode = false;
-    var cartItems = []; // 使用者目前的購物車暫存
+    var cartItems = [];
 
     // 監聽 Firebase Auth 登入狀態
     auth.onAuthStateChanged(user => {
@@ -428,13 +399,18 @@
       var authBtn = document.getElementById('memberAuthBtn');
       
       if (user) {
-        currentUserDisplayName = user.displayName || user.email.split('@')[0];
-        infoDisplay.innerHTML = '👤 已登入：<b>' + currentUserDisplayName + '</b> <span style="font-size:11px; color:#666;">(' + user.email + ')</span>';
+        var metadata = user.reloadUserInfo || {};
+        var displayName = user.displayName || metadata.displayName || user.email.split('@')[0];
+        // 嘗試從 user 儲存的 metadata 或 custom attributes 抓取電話，若無則預設
+        var phone = metadata.phoneNumber || user.phoneNumber || "未填寫";
+        currentMemberInfo = { name: displayName, phone: phone };
+
+        infoDisplay.innerHTML = '👤 已登入：<b>' + currentMemberInfo.name + '</b> (' + currentMemberInfo.phone + ')';
         authBtn.innerText = '登出';
         authBtn.setAttribute('onclick', 'handleLogout()');
         authBtn.style.background = '#D9534F';
       } else {
-        currentUserDisplayName = "";
+        currentMemberInfo = { name: "", phone: "" };
         infoDisplay.innerHTML = '👤 尚未登入（請先登入或註冊會員）';
         authBtn.innerText = '會員登入 / 註冊';
         authBtn.setAttribute('onclick', 'openAuthModal()');
@@ -445,7 +421,7 @@
     function openAuthModal() {
       isRegisterMode = false;
       document.getElementById('authModalTitle').innerText = '🔐 會員登入';
-      document.getElementById('nameFieldGroup').style.display = 'none';
+      document.getElementById('registerFieldsGroup').style.display = 'none';
       document.getElementById('authSubmitBtn').innerText = '登入帳號';
       document.getElementById('authToggleText').innerText = '還沒有帳號？';
       document.getElementById('authToggleBtn').innerText = '點此註冊新會員';
@@ -456,13 +432,13 @@
       isRegisterMode = !isRegisterMode;
       if (isRegisterMode) {
         document.getElementById('authModalTitle').innerText = '📝 註冊新會員';
-        document.getElementById('nameFieldGroup').style.display = 'block';
+        document.getElementById('registerFieldsGroup').style.display = 'block';
         document.getElementById('authSubmitBtn').innerText = '確認註冊';
         document.getElementById('authToggleText').innerText = '已經有帳號了？';
         document.getElementById('authToggleBtn').innerText = '點此登入';
       } else {
         document.getElementById('authModalTitle').innerText = '🔐 會員登入';
-        document.getElementById('nameFieldGroup').style.display = 'none';
+        document.getElementById('registerFieldsGroup').style.display = 'none';
         document.getElementById('authSubmitBtn').innerText = '登入帳號';
         document.getElementById('authToggleText').innerText = '還沒有帳號？';
         document.getElementById('authToggleBtn').innerText = '點此註冊新會員';
@@ -472,15 +448,16 @@
     function handleEmailAuth() {
       var email = document.getElementById('authEmail').value.trim();
       var password = document.getElementById('authPassword').value;
-      var displayName = document.getElementById('authDisplayName').value.trim();
+      var fullName = document.getElementById('authFullName').value.trim();
+      var phone = document.getElementById('authPhone').value.trim();
 
       if (!email || !password) { alert('請填寫完整 Email 與密碼！'); return; }
 
       if (isRegisterMode) {
-        if (!displayName) { alert('請填寫您的暱稱/買家姓名！'); return; }
+        if (!fullName || !phone) { alert('註冊會員必須填寫「全名」與「電話號碼」！'); return; }
         auth.createUserWithEmailAndPassword(email, password)
           .then(result => {
-            return result.user.updateProfile({ displayName: displayName });
+            return result.user.updateProfile({ displayName: fullName + " (" + phone + ")" });
           })
           .then(() => {
             alert('🎉 註冊成功並已登入！');
@@ -541,7 +518,6 @@
 
     var products = defaultProducts;
     var completedOrders = [];
-    var wishList = [];
     var editingProdIndex = null;
     var editingOrderInfo = null;
     var currentModalItemIdx = null;
@@ -588,7 +564,6 @@
           }
 
           if (data && Array.isArray(data.completedOrders)) completedOrders = data.completedOrders;
-          if (data && Array.isArray(data.wishList)) wishList = data.wishList;
           if (data && data.siteTitle) {
             SITE_TITLE = data.siteTitle;
             document.getElementById('pageTitleText').innerText = SITE_TITLE;
@@ -601,12 +576,10 @@
         } else {
           products = defaultProducts;
           completedOrders = [];
-          wishList = [];
           manualSaveData(false);
         }
 
         renderList();
-        renderWishList();
         renderCartView();
 
         if (document.getElementById('adminModal').style.display === 'flex') {
@@ -618,7 +591,6 @@
             updateDailyRevenueStats();
             updateCustomerStats();
             updateCompletedOrdersStats();
-            updateAdminWishStats();
           }
         }
       }, err => {
@@ -631,7 +603,6 @@
       db.collection('storeData').doc('kidsStoreDoc').set({
         items: products,
         completedOrders: completedOrders,
-        wishList: wishList,
         siteTitle: SITE_TITLE,
         exchangeRate: GLOBAL_EXCHANGE_RATE,
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
@@ -659,73 +630,6 @@
       }
       p.prices[unitKey][field] = val;
       manualSaveData(false);
-    }
-
-    function submitWish() {
-      if (!currentUserDisplayName) { alert('請先登入會員才能許願！'); openAuthModal(); return; }
-      var prodName = document.getElementById('wishProdName').value.trim();
-      var note = document.getElementById('wishProdNote').value.trim();
-
-      if (!prodName) { alert('請填寫許願款式！'); return; }
-
-      wishList.unshift({ id: Date.now(), buyerName: currentUserDisplayName, prodName: prodName, note: note, createdAt: new Date().toLocaleDateString() });
-      document.getElementById('wishProdName').value = '';
-      document.getElementById('wishProdNote').value = '';
-      manualSaveData(false);
-      renderWishList();
-      alert('🎉 許願成功！');
-    }
-
-    function renderWishList() {
-      var wishDisplay = document.getElementById('wishListUserDisplay');
-      if (!wishDisplay) return;
-      wishDisplay.innerHTML = '';
-      if (wishList.length === 0) { wishDisplay.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">尚無許願紀錄</div>'; return; }
-
-      for (var i = 0; i < wishList.length; i++) {
-        var w = wishList[i];
-        var card = document.createElement('div');
-        card.className = 'wish-card';
-        card.innerHTML = '<div class="wish-title"><span>🌟 ' + w.prodName + '</span></div>' +
-          (w.note ? '<div class="wish-note">💬 ' + w.note + '</div>' : '') +
-          '<div class="wish-author">👤 許願人：' + w.buyerName + ' (' + w.createdAt + ')</div>';
-        wishDisplay.appendChild(card);
-      }
-    }
-
-    function updateAdminWishStats() {
-      var adminWishDisplay = document.getElementById('adminWishListDisplay');
-      if (!adminWishDisplay) return;
-      adminWishDisplay.innerHTML = '';
-      if (wishList.length === 0) { adminWishDisplay.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">目前尚無許願</div>'; return; }
-
-      for (var i = 0; i < wishList.length; i++) {
-        var w = wishList[i];
-        var card = document.createElement('div');
-        card.className = 'customer-card';
-        card.innerHTML = '<div class="customer-name"><span>🌟 ' + w.prodName + '</span>' +
-          '<button class="btn-del-prod" style="padding:2px 8px; font-size:11px;" onclick="deleteWish(' + i + ')">刪除</button></div>' +
-          '<div style="font-size:13px; color:var(--text-sub); margin-bottom:4px;">👤 許願人：' + w.buyerName + '</div>' +
-          (w.note ? '<div style="font-size:12px; color:#666; margin-bottom:8px;">💬 備註：' + w.note + '</div>' : '') +
-          '<button class="btn-edit-order" style="padding:4px 10px; font-size:12px;" onclick="convertWishToProduct(' + i + ')">➕ 一鍵轉為正式童裝商品</button>';
-        adminWishDisplay.appendChild(card);
-      }
-    }
-
-    function deleteWish(index) {
-      if (confirm('確定刪除此許願？')) { wishList.splice(index, 1); manualSaveData(false); renderWishList(); updateAdminWishStats(); }
-    }
-
-    function convertWishToProduct(index) {
-      var w = wishList[index];
-      products.unshift({
-        id: Date.now(), name: w.prodName, prices: {}, buyers: [],
-        category: '上衣/T恤', units: ['90', '100', '110', '120', '130'], note: w.note || '', image: '', purchasedCounts: {}, isCompleted: false, isHidden: false
-      });
-      wishList.splice(index, 1);
-      manualSaveData(false);
-      renderList(); renderWishList(); updateAdminProductList(); updateAdminStats(); updateAdminWishStats();
-      alert('🎉 已轉為上架童裝！');
     }
 
     function exportToExcel() {
@@ -756,7 +660,6 @@
       if (sectionName === 'home') { document.getElementById('sectionHome').classList.add('active'); renderList(); }
       else if (sectionName === 'category') { document.getElementById('sectionCategory').classList.add('active'); }
       else if (sectionName === 'cart') { document.getElementById('sectionCart').classList.add('active'); renderCartView(); }
-      else if (sectionName === 'wish') { document.getElementById('sectionWish').classList.add('active'); renderWishList(); }
     }
 
     function goToCategory(catName) {
@@ -804,7 +707,6 @@
       var noteEl = document.getElementById('detailModalNote');
       if (p.note) { noteEl.innerText = p.note; noteEl.style.display = 'block'; } else { noteEl.style.display = 'none'; }
 
-      // 渲染尺寸選購控制器
       var sizeControlsEl = document.getElementById('detailModalSizeControls');
       sizeControlsEl.innerHTML = '';
       var units = p.units && p.units.length > 0 ? p.units : ['90', '100', '110', '120', '130'];
@@ -840,7 +742,7 @@
     }
 
     function addToCartModal() {
-      if (!currentUserDisplayName) { alert('請先登入會員才能將商品放入購物車！'); openAuthModal(); return; }
+      if (!currentMemberInfo.name) { alert('請先登入會員才能將商品放入購物車！'); openAuthModal(); return; }
 
       var unitNames = Object.keys(modalCartUnits);
       if (unitNames.length === 0) { alert('請至少選擇一個尺寸的數量！'); return; }
@@ -907,10 +809,9 @@
     }
 
     function submitCartOrder() {
-      if (!currentUserDisplayName) { alert('請先登入會員！'); openAuthModal(); return; }
+      if (!currentMemberInfo.name) { alert('請先登入會員！'); openAuthModal(); return; }
       if (cartItems.length === 0) { alert('購物車是空的！'); return; }
 
-      // 自動產生唯一的訂單編號 (例如 ORD + 時間戳記 + 亂數)
       var orderId = 'ORD' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 90 + 10);
 
       for (var i = 0; i < cartItems.length; i++) {
@@ -919,7 +820,7 @@
         if (!p.buyers) p.buyers = [];
         p.buyers.push({
           orderId: orderId,
-          name: currentUserDisplayName,
+          name: currentMemberInfo.name + " (" + currentMemberInfo.phone + ")",
           count: c.count,
           unit: c.unit,
           bought: 0
@@ -965,7 +866,7 @@
 
     function openAdminPortal() {
       if (isAuthed) {
-        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats(); updateAdminWishStats();
+        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats();
         document.getElementById('adminModal').style.display = 'flex';
       } else {
         document.getElementById('adminPwdInput').value = '';
@@ -980,7 +881,7 @@
       if (pwd === ADMIN_PASSWORD) {
         isAuthed = true;
         closeModal('loginModal');
-        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats(); updateAdminWishStats();
+        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats();
         document.getElementById('adminModal').style.display = 'flex';
       } else { alert('密碼錯誤！'); }
     }
@@ -1263,7 +1164,7 @@
           var u = b.unit || '100';
           if (!unitTotals[u]) unitTotals[u] = 0;
           unitTotals[u] += b.count;
-          buyersHtml += '<div class="admin-buyer-detail">📦 [' + (b.orderId || '一般') + '] ' + b.name + ': <b>' + b.count + ' 件</b> (尺寸 ' + u + ')</div>';
+          buyersHtml += '<div style="font-size:12px; color:var(--text-sub); margin-left:12px;">📦 [' + (b.orderId || '一般') + '] ' + b.name + ': <b>' + b.count + ' 件</b> (尺寸 ' + u + ')</div>';
         }
 
         var progressHtml = '';
@@ -1285,7 +1186,7 @@
             '</div>' +
             '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">' +
               '<div><label style="font-size:11px; color:#666;">換算台幣</label><input type="text" class="form-input" style="background:#eee;" readonly value="NT$ ' + (pricing.krwPrice ? Math.round(parseInt(pricing.krwPrice.replace(/,/g,'')) / pricing.rate) : 0) + '" /></div>' +
-              '<div><label style="font-size:11px; color:#666;">售價 (NT$)</label><input type="text" class="form-input stats-input" style="font-weight:bold; color:#28A745;" value="' + pricing.ntPrice + '" oninput="updateUnitPricingInput(' + i + ', \'' + unitKey + '\', \'ntPrice\', this.value, this)" /></div>' +
+              '<div><label style="font-size:11px; color:#666;">售價 (NT$)</label><input type="text" class="form-input stats-input" style="font-weight:bold; color:#28A745;" value="' + pricing.ntPrice + '" oninput="updateUnitPricingInput(' + i + ', \`' + unitKey + '\`, \'ntPrice\', this.value, this)" /></div>' +
             '</div>' +
             '<div class="progress-row"><span style="font-size:12px;">🛒 採購進度：<b>已買 ' + boughtCount + ' / 共 ' + totalNeeded + ' 件</b></span>' +
             '<div class="progress-controls"><button class="btn-mini-qty" onclick="updatePurchasedQty(' + i + ', \'' + unitKey + '\', -1)">-</button><button class="btn-mini-qty" onclick="updatePurchasedQty(' + i + ', \'' + unitKey + '\', 1)">+</button></div></div>' +
@@ -1300,7 +1201,7 @@
       }
 
       if (activeItemsCount === 0) {
-        contentList.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">目前尚無人下單，採購統計無待採購項目</div>';
+        contentList.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">目前尚無人下單，訂單管理無待採購項目</div>';
         return;
       }
     }
@@ -1348,11 +1249,11 @@
 
     function switchTab(tabNum) {
       document.querySelectorAll('.admin-tab-btn').forEach((btn, idx) => {
-        var targets = [1, 7, 8, 2, 6, 5, 3, 4];
+        var targets = [1, 7, 8, 2, 6, 3, 4];
         btn.className = 'admin-tab-btn' + (targets[idx] === tabNum ? ' active' : '');
       });
       document.querySelectorAll('.admin-section').forEach((sec, idx) => {
-        var targets = [1, 7, 8, 2, 6, 5, 3, 4];
+        var targets = [1, 7, 8, 2, 6, 3, 4];
         sec.className = 'admin-section' + (targets[idx] === tabNum ? ' active' : '');
       });
 
@@ -1361,7 +1262,6 @@
       else if (tabNum === 8) updateDailyRevenueStats();
       else if (tabNum === 2) updateCustomerStats();
       else if (tabNum === 6) updateCompletedOrdersStats();
-      else if (tabNum === 5) updateAdminWishStats();
     }
   </script>
 </body>
