@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitleText">韓國童裝連線代購</title>
   
-  <!-- Firebase SDKs (App, Firestore, Auth) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -28,7 +28,6 @@
     .header { background: var(--card-bg); padding: 18px; border-radius: 20px; box-shadow: var(--shadow); margin-bottom: 16px; text-align: center; border: 1px solid var(--border-color); }
     .header-title h1 { font-size: 20px; font-weight: 700; color: var(--text-main); }
 
-    /* 會員專區頂部列 */
     .member-top-bar { background: var(--card-bg); padding: 12px 16px; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
     .member-info { font-size: 13px; font-weight: 600; color: var(--text-sub); }
     .btn-login-open { background: var(--accent); color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: 600; }
@@ -52,12 +51,12 @@
     .item-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto; }
     .tag { font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 500; }
     .tag-category { background-color: var(--accent-light); color: var(--text-sub); }
-    .tag-buyer { background-color: #E8E2D8; color: #5A4D41; cursor: pointer; }
 
     .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--card-bg); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 0; z-index: 999; box-shadow: 0 -4px 12px rgba(90,77,65,0.05); }
-    .nav-item { background: none; border: none; display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--text-sub); cursor: pointer; gap: 3px; flex: 1; }
+    .nav-item { background: none; border: none; display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--text-sub); cursor: pointer; gap: 3px; flex: 1; position: relative; }
     .nav-item.active { color: var(--accent); font-weight: bold; }
     .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .cart-badge { position: absolute; top: 2px; right: 25%; background: #D9534F; color: white; font-size: 9px; padding: 1px 5px; border-radius: 10px; font-weight: bold; display: none; }
 
     .admin-nav { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
     .admin-tab-btn { flex: 1; min-width: 30%; padding: 8px 2px; border: none; background: #EFECE6; color: var(--text-sub); font-weight: 600; border-radius: 10px; cursor: pointer; font-size: 11px; text-align: center; }
@@ -68,7 +67,6 @@
     .admin-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; background: #eee; flex-shrink: 0; }
     .admin-item-info { flex: 1; min-width: 0; }
     .admin-item-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; display: flex; justify-content: space-between; }
-    .admin-buyer-detail { font-size: 12px; color: var(--text-sub); margin-left: 12px; }
     
     .progress-box { background: #FFF; border: 1px solid var(--border-color); padding: 8px 10px; border-radius: 8px; margin: 6px 0; font-size: 12px; }
     .progress-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
@@ -131,7 +129,16 @@
       </div>
     </div>
 
-    <!-- 3. 許願池分頁 -->
+    <!-- 3. 購物車分頁 -->
+    <div id="sectionCart" class="page-section">
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: var(--accent);">🛒 我的購物車</div>
+      <div id="cartContentList"></div>
+      <div id="cartCheckoutArea" style="display:none; margin-top: 16px;">
+        <button class="btn-submit" onclick="submitCartOrder()">📦 確認送出訂單</button>
+      </div>
+    </div>
+
+    <!-- 4. 許願池分頁 -->
     <div id="sectionWish" class="page-section">
       <div style="background: var(--card-bg); padding: 16px; border-radius: 16px; box-shadow: var(--shadow); border: 1px solid var(--border-color); margin-bottom: 16px;">
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: var(--accent);">✨ 童裝許願池</div>
@@ -160,6 +167,11 @@
     <button class="nav-item" onclick="switchSection('category', this)">
       <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       <span>分類</span>
+    </button>
+    <button class="nav-item" onclick="switchSection('cart', this)">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span>購物車</span>
+      <span class="cart-badge" id="cartBadge">0</span>
     </button>
     <button class="nav-item" onclick="switchSection('wish', this)">
       <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -209,7 +221,7 @@
   <div class="modal-overlay" id="productDetailModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1300;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="font-size: 18px; font-weight: 700;">👕 選擇尺寸與登記</h2>
+        <h2 style="font-size: 18px; font-weight: 700;">👕 選擇尺寸與數量</h2>
         <button class="btn-close" onclick="closeModal('productDetailModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
       </div>
       <div style="text-align: center; margin-bottom: 16px;">
@@ -222,12 +234,9 @@
       <div id="detailModalNote" style="font-size: 13px; color: #666; margin-bottom: 16px; background: #FAFAFA; padding: 10px; border-radius: 10px; border: 1px solid var(--border-color);"></div>
       
       <div style="font-size: 14px; font-weight: bold; color: var(--accent); margin-bottom: 8px;">📏 請選擇尺寸與數量：</div>
-      <div id="detailModalSizeControls" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;"></div>
+      <div id="detailModalSizeControls" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;"></div>
 
-      <div style="font-size: 14px; font-weight: bold; color: var(--accent); margin-bottom: 6px;">📋 目前已有登記：</div>
-      <div id="detailModalBuyers" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px;"></div>
-
-      <button class="btn-submit" onclick="submitModalCart()">確認送出登記</button>
+      <button class="btn-submit" onclick="addToCartModal()">🛒 放入購物車</button>
     </div>
   </div>
 
@@ -411,6 +420,7 @@
 
     var currentUserDisplayName = "";
     var isRegisterMode = false;
+    var cartItems = []; // 使用者目前的購物車暫存
 
     // 監聽 Firebase Auth 登入狀態
     auth.onAuthStateChanged(user => {
@@ -525,8 +535,8 @@
     // 2. 預設童裝資料
     // -----------------------------------------------------------------
     var defaultProducts = [
-      { "id": 1, "name": "正韓小熊刷毛大學T", "prices": {}, "buyers": [{"name": "媽咪A", "count": 1, "unit": "110", "bought": 0}], "category": "上衣/T恤", "units": ["90", "100", "110", "120", "130"], "note": "版型正常，材質超舒服", "image": "", "purchasedCounts": {}, "isCompleted": false, "isHidden": false },
-      { "id": 2, "name": "彈性休閒內搭褲", "prices": {}, "buyers": [{"name": "媽咪B", "count": 2, "unit": "100", "bought": 0}], "category": "褲子/裙裝", "units": ["90", "100", "110", "120", "130"], "note": "超好搭，彈性極佳", "image": "", "purchasedCounts": {}, "isCompleted": false, "isHidden": false }
+      { "id": 1, "name": "正韓小熊刷毛大學T", "prices": {}, "buyers": [], "category": "上衣/T恤", "units": ["90", "100", "110", "120", "130"], "note": "版型正常，材質超舒服", "image": "", "purchasedCounts": {}, "isCompleted": false, "isHidden": false },
+      { "id": 2, "name": "彈性休閒內搭褲", "prices": {}, "buyers": [], "category": "褲子/裙裝", "units": ["90", "100", "110", "120", "130"], "note": "超好搭，彈性極佳", "image": "", "purchasedCounts": {}, "isCompleted": false, "isHidden": false }
     ];
 
     var products = defaultProducts;
@@ -597,6 +607,7 @@
 
         renderList();
         renderWishList();
+        renderCartView();
 
         if (document.getElementById('adminModal').style.display === 'flex') {
           if (document.activeElement && document.activeElement.classList.contains('stats-input')) {
@@ -708,7 +719,7 @@
     function convertWishToProduct(index) {
       var w = wishList[index];
       products.unshift({
-        id: Date.now(), name: w.prodName, prices: {}, buyers: [{ name: w.buyerName, count: 1, unit: '100', bought: 0 }],
+        id: Date.now(), name: w.prodName, prices: {}, buyers: [],
         category: '上衣/T恤', units: ['90', '100', '110', '120', '130'], note: w.note || '', image: '', purchasedCounts: {}, isCompleted: false, isHidden: false
       });
       wishList.splice(index, 1);
@@ -718,26 +729,15 @@
     }
 
     function exportToExcel() {
-      var csvContent = "\uFEFF款式名稱,分類,尺寸,總需求數量,韓幣買入(₩),匯率,售價台幣(NT$),總售價,已採購數,買家與尺寸明細\n";
+      var csvContent = "\uFEFF訂單編號,買家姓名,款式名稱,分類,尺寸,數量,韓幣買入(₩),匯率,售價台幣(NT$),總售價,已採購數\n";
       for (var i = 0; i < products.length; i++) {
         var p = products[i];
         if (!p.buyers) p.buyers = [];
-        var unitTotals = {}; var buyerArr = [];
         for (var j = 0; j < p.buyers.length; j++) {
           var b = p.buyers[j]; var u = b.unit || '100';
-          if (!unitTotals[u]) unitTotals[u] = 0;
-          unitTotals[u] += b.count;
-          buyerArr.push(b.name + " " + b.count + "件(" + u + ")");
-        }
-        var unitsArr = p.units && p.units.length > 0 ? p.units : ['100'];
-        for (var uIdx = 0; uIdx < unitsArr.length; uIdx++) {
-          var unitKey = unitsArr[uIdx];
-          var totalNeeded = unitTotals[unitKey] || 0;
-          var pricing = getUnitPricing(p, unitKey);
-          var totalNtSum = pricing.finalNt * totalNeeded;
-          var filteredBuyers = buyerArr.filter(item => item.includes("(" + unitKey + ")")).join('; ');
-
-          csvContent += ['"' + p.name + '"', '"' + p.category + '"', unitKey, totalNeeded, pricing.krwPrice, pricing.rate, pricing.finalNt, totalNtSum, p.purchasedCounts?.[unitKey] || 0, '"' + filteredBuyers + '"'].join(",") + "\n";
+          var pricing = getUnitPricing(p, u);
+          var totalNtSum = pricing.finalNt * b.count;
+          csvContent += ['"' + (b.orderId || '一般登記') + '"', '"' + b.name + '"', '"' + p.name + '"', '"' + p.category + '"', u, b.count, pricing.krwPrice, pricing.rate, pricing.finalNt, totalNtSum, p.purchasedCounts?.[u] || 0].join(",") + "\n";
         }
       }
       var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -755,6 +755,7 @@
 
       if (sectionName === 'home') { document.getElementById('sectionHome').classList.add('active'); renderList(); }
       else if (sectionName === 'category') { document.getElementById('sectionCategory').classList.add('active'); }
+      else if (sectionName === 'cart') { document.getElementById('sectionCart').classList.add('active'); renderCartView(); }
       else if (sectionName === 'wish') { document.getElementById('sectionWish').classList.add('active'); renderWishList(); }
     }
 
@@ -821,21 +822,6 @@
         sizeControlsEl.appendChild(row);
       }
 
-      // 渲染目前登記明細
-      var buyersEl = document.getElementById('detailModalBuyers');
-      buyersEl.innerHTML = '';
-      if (!p.buyers || p.buyers.length === 0) {
-        buyersEl.innerHTML = '<div style="color:#999; font-size:13px; text-align:center; padding:10px;">目前尚無人登記</div>';
-      } else {
-        for (var j = 0; j < p.buyers.length; j++) {
-          var b = p.buyers[j];
-          var r = document.createElement('div');
-          r.style.cssText = "display:flex; justify-content:space-between; font-size:13px; padding:6px 10px; background:#FAFAFA; border-radius:8px; border:1px solid var(--border-color);";
-          r.innerHTML = '<span>👤 ' + b.name + '</span><b>' + b.count + '件 (尺寸 ' + (b.unit || '100') + ')</b>';
-          buyersEl.appendChild(r);
-        }
-      }
-
       document.getElementById('productDetailModal').style.display = 'flex';
     }
 
@@ -853,27 +839,98 @@
       if (displayEl) displayEl.innerText = next;
     }
 
-    function submitModalCart() {
-      if (!currentUserDisplayName) { alert('請先登入會員才能進行登記購買！'); openAuthModal(); return; }
+    function addToCartModal() {
+      if (!currentUserDisplayName) { alert('請先登入會員才能將商品放入購物車！'); openAuthModal(); return; }
 
       var unitNames = Object.keys(modalCartUnits);
       if (unitNames.length === 0) { alert('請至少選擇一個尺寸的數量！'); return; }
 
       var p = products[currentModalItemIdx];
-      if (!p.buyers) p.buyers = [];
-
+      
       for (var i = 0; i < unitNames.length; i++) {
         var uName = unitNames[i];
         var qty = modalCartUnits[uName];
         if (qty > 0) {
-          p.buyers.push({ name: currentUserDisplayName, count: qty, unit: uName, bought: 0 });
+          cartItems.push({
+            itemIdx: currentModalItemIdx,
+            name: p.name,
+            unit: uName,
+            count: qty,
+            image: p.image || ''
+          });
         }
       }
 
-      manualSaveData(false);
+      updateCartBadge();
       closeModal('productDetailModal');
-      renderList();
-      alert('🎉 登記成功！資料已即時同步！');
+      alert('🛒 已成功放入購物車！');
+    }
+
+    function updateCartBadge() {
+      var badge = document.getElementById('cartBadge');
+      if (cartItems.length > 0) {
+        badge.innerText = cartItems.length;
+        badge.style.display = 'block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    function renderCartView() {
+      var container = document.getElementById('cartContentList');
+      var checkoutArea = document.getElementById('cartCheckoutArea');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (cartItems.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#999; padding:30px;">購物車目前空空如也～趕快去挑選童裝吧！</div>';
+        checkoutArea.style.display = 'none';
+        return;
+      }
+
+      checkoutArea.style.display = 'block';
+      for (var i = 0; i < cartItems.length; i++) {
+        var c = cartItems[i];
+        var card = document.createElement('div');
+        card.className = 'customer-card';
+        card.innerHTML = '<div class="customer-name"><span>👕 ' + c.name + '</span>' +
+          '<button class="btn-del-prod" style="padding:2px 8px; font-size:11px;" onclick="removeFromCart(' + i + ')">移除</button></div>' +
+          '<div style="font-size:13px; color:var(--text-sub);">尺寸：<b>' + c.unit + '</b> | 數量：<b>' + c.count + ' 件</b></div>';
+        container.appendChild(card);
+      }
+    }
+
+    function removeFromCart(index) {
+      cartItems.splice(index, 1);
+      updateCartBadge();
+      renderCartView();
+    }
+
+    function submitCartOrder() {
+      if (!currentUserDisplayName) { alert('請先登入會員！'); openAuthModal(); return; }
+      if (cartItems.length === 0) { alert('購物車是空的！'); return; }
+
+      // 自動產生唯一的訂單編號 (例如 ORD + 時間戳記 + 亂數)
+      var orderId = 'ORD' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 90 + 10);
+
+      for (var i = 0; i < cartItems.length; i++) {
+        var c = cartItems[i];
+        var p = products[c.itemIdx];
+        if (!p.buyers) p.buyers = [];
+        p.buyers.push({
+          orderId: orderId,
+          name: currentUserDisplayName,
+          count: c.count,
+          unit: c.unit,
+          bought: 0
+        });
+      }
+
+      cartItems = [];
+      updateCartBadge();
+      manualSaveData(false);
+      switchSection('home', document.querySelectorAll('.bottom-nav .nav-item')[0]);
+      alert('🎉 訂單已成功送出！系統已自動為您產生訂單編號：' + orderId);
     }
 
     function renderList() {
@@ -884,7 +941,6 @@
       for (var i = 0; i < products.length; i++) {
         var product = products[i];
         if (product.isHidden) continue;
-        if (!product.buyers) product.buyers = [];
 
         if (currentCategoryFilter !== '全部' && currentCategoryFilter !== 'default_all' && product.category !== currentCategoryFilter) {
           continue;
@@ -897,16 +953,10 @@
         var defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%238C705F" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
         var imgSrc = product.image ? fixImageUrl(product.image) : defaultSvg;
 
-        var buyerTagsHTML = '';
-        for (var j = 0; j < product.buyers.length; j++) {
-          var b = product.buyers[j];
-          buyerTagsHTML += '<span class="tag tag-buyer" onclick="event.stopPropagation(); openAdminEditOrderModal(' + i + ', \'' + b.name + '\', \'' + (b.unit || '100') + '\', ' + b.count + ')">👤 ' + b.name + ' ' + b.count + '件(' + (b.unit || '100') + ')</span>';
-        }
-
         card.innerHTML = '<div class="item-img-wrap"><img src="' + imgSrc + '" class="item-img" alt="" /></div>' +
           '<div class="item-content">' +
             '<div class="item-name">' + product.name + '</div>' +
-            '<div class="item-tags"><span class="tag tag-category">' + product.category + '</span>' + buyerTagsHTML + '</div>' +
+            '<div class="item-tags"><span class="tag tag-category">' + product.category + '</span></div>' +
           '</div>';
         
         itemList.appendChild(card);
@@ -993,21 +1043,23 @@
       alert('✅ 訂單尺寸與數量已更新！');
     }
 
-    function completeCustomerOrders(buyerName) {
-      if (confirm('🎉 確定將 「' + buyerName + '」 的訂單標記為「已完成」？')) {
+    function completeCustomerOrders(orderId) {
+      if (confirm('🎉 確定將訂單編號 「' + orderId + '」 標記為「已完成」？')) {
         var itemsToComplete = [];
+        var buyerName = '';
         products.forEach(p => {
           if (p.buyers) {
-            var matching = p.buyers.filter(b => b.name.trim() === buyerName.trim());
+            var matching = p.buyers.filter(b => (b.orderId || '一般登記') === orderId);
             matching.forEach(b => {
+              buyerName = b.name;
               var pricing = getUnitPricing(p, b.unit || '100');
               itemsToComplete.push({ itemName: p.name, count: b.count, unit: b.unit || '100', ntPrice: pricing.finalNt, krwPrice: pricing.krwPrice, rate: pricing.rate });
             });
-            p.buyers = p.buyers.filter(b => b.name.trim() !== buyerName.trim());
+            p.buyers = p.buyers.filter(b => (b.orderId || '一般登記') !== orderId);
           }
         });
         if (itemsToComplete.length > 0) {
-          completedOrders.unshift({ id: Date.now(), buyerName: buyerName, items: itemsToComplete, completedAt: new Date().toLocaleString() });
+          completedOrders.unshift({ id: Date.now(), orderId: orderId, buyerName: buyerName, items: itemsToComplete, completedAt: new Date().toLocaleString() });
         }
         renderList(); updateCustomerStats(); updateCompletedOrdersStats(); updateDailyRevenueStats(); updateAdminProductList(); updateAdminStats();
         manualSaveData(false);
@@ -1021,7 +1073,7 @@
         if (comp && comp.items) {
           comp.items.forEach(it => {
             var prod = products.find(p => p.name.trim() === it.itemName.trim());
-            if (prod) { if (!prod.buyers) prod.buyers = []; prod.buyers.push({ name: comp.buyerName, count: it.count, unit: it.unit, bought: 0 }); }
+            if (prod) { if (!prod.buyers) prod.buyers = []; prod.buyers.push({ orderId: comp.orderId || ('RESTORE-' + Date.now()), name: comp.buyerName, count: it.count, unit: it.unit, bought: 0 }); }
           });
         }
         completedOrders.splice(index, 1);
@@ -1034,18 +1086,9 @@
       if (confirm('確定永久刪除此歷史紀錄？')) { completedOrders.splice(index, 1); updateCompletedOrdersStats(); updateDailyRevenueStats(); manualSaveData(false); }
     }
 
-    function adminDeleteCustomerItem(itemIdx, buyerName, unitName, countVal) {
-      if (confirm('確定刪除此筆登記？')) {
-        var p = products[itemIdx];
-        if (!p || !p.buyers) return;
-        p.buyers = p.buyers.filter(b => !(b.name.trim() === buyerName.trim() && (b.unit || '100') === unitName && b.count === countVal));
-        renderList(); updateCustomerStats(); updateAdminProductList(); updateAdminStats(); manualSaveData(false);
-      }
-    }
-
-    function adminDeleteAllCustomerOrders(buyerName) {
-      if (confirm('⚠️ 刪除這位買家的所有登記？')) {
-        products.forEach(p => { if (p.buyers) p.buyers = p.buyers.filter(b => b.name.trim() !== buyerName.trim()); });
+    function adminDeleteOrder(orderId) {
+      if (confirm('⚠️ 確定刪除訂單編號 ' + orderId + ' 的所有登記？')) {
+        products.forEach(p => { if (p.buyers) p.buyers = p.buyers.filter(b => (b.orderId || '一般登記') !== orderId); });
         renderList(); updateCustomerStats(); updateAdminProductList(); updateAdminStats(); manualSaveData(false);
       }
     }
@@ -1109,43 +1152,44 @@
     function updateCustomerStats() {
       var customerList = document.getElementById('customerContentList');
       if (!customerList) return; customerList.innerHTML = '';
-      var customerMap = {};
+      var orderMap = {};
 
       for (var i = 0; i < products.length; i++) {
         var p = products[i];
         if (!p.buyers) continue;
         for (var j = 0; j < p.buyers.length; j++) {
-          var b = p.buyers[j]; var cName = b.name.trim();
-          if (!customerMap[cName]) customerMap[cName] = [];
+          var b = p.buyers[j];
+          var oId = b.orderId || '一般登記';
+          if (!orderMap[oId]) { orderMap[oId] = { buyerName: b.name, items: [] }; }
           var pricing = getUnitPricing(p, b.unit || '100');
-          customerMap[cName].push({ itemIdx: i, itemName: p.name, count: b.count, unit: b.unit || '100', ntPrice: pricing.finalNt });
+          orderMap[oId].items.push({ itemIdx: i, itemName: p.name, count: b.count, unit: b.unit || '100', ntPrice: pricing.finalNt });
         }
       }
 
-      var customerNames = Object.keys(customerMap);
-      if (customerNames.length === 0) { customerList.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">🎉 目前沒有未完成的訂單！</div>'; return; }
+      var orderIds = Object.keys(orderMap);
+      if (orderIds.length === 0) { customerList.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">🎉 目前沒有未完成的訂單！</div>'; return; }
 
       var header = document.createElement('div');
       header.style.cssText = "font-size:16px; font-weight:bold; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border-color);";
-      header.innerText = '👥 未完成訂單買家：' + customerNames.length + ' 位';
+      header.innerText = '👥 未完成訂單數：' + orderIds.length + ' 筆';
       customerList.appendChild(header);
 
-      for (var k = 0; k < customerNames.length; k++) {
-        var name = customerNames[k]; var items = customerMap[name];
+      for (var k = 0; k < orderIds.length; k++) {
+        var oId = orderIds[k];
+        var orderData = orderMap[oId];
         var card = document.createElement('div'); card.className = 'customer-card';
         var itemsHtml = ''; var totalNt = 0;
 
-        for (var m = 0; m < items.length; m++) {
-          var it = items[m]; totalNt += it.ntPrice * it.count;
+        for (var m = 0; m < orderData.items.length; m++) {
+          var it = orderData.items[m]; totalNt += it.ntPrice * it.count;
           itemsHtml += '<div style="font-size:13px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">' +
             '<span>• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b></span>' +
-            '<div style="display:flex; gap:4px;"><button class="btn-edit-order" onclick="openAdminEditOrderModal(' + it.itemIdx + ', \'' + name + '\', \'' + it.unit + '\', ' + it.count + ')">修改</button>' +
-            '<button class="btn-del-prod" style="padding:2px 8px; font-size:11px;" onclick="adminDeleteCustomerItem(' + it.itemIdx + ', \'' + name + '\', \'' + it.unit + '\', ' + it.count + ')">刪除</button></div></div>';
+            '<div style="display:flex; gap:4px;"><button class="btn-edit-order" onclick="openAdminEditOrderModal(' + it.itemIdx + ', \'' + orderData.buyerName + '\', \'' + it.unit + '\', ' + it.count + ')">修改</button></div></div>';
         }
 
-        card.innerHTML = '<div class="customer-name"><span>👤 ' + name + '</span>' +
-          '<div style="display:flex; gap:6px;"><button class="btn-complete-order" onclick="completeCustomerOrders(\'' + name + '\')">✅ 完成訂單</button>' +
-          '<button class="btn-del-prod" style="padding:3px 8px; font-size:11px;" onclick="adminDeleteAllCustomerOrders(\'' + name + '\')">🗑️ 刪除</button></div></div>' +
+        card.innerHTML = '<div class="customer-name"><span>📦 訂單編號：' + oId + ' <small style="color:#666;">(' + orderData.buyerName + ')</small></span>' +
+          '<div style="display:flex; gap:6px;"><button class="btn-complete-order" onclick="completeCustomerOrders(\'' + oId + '\')">✅ 完成訂單</button>' +
+          '<button class="btn-del-prod" style="padding:3px 8px; font-size:11px;" onclick="adminDeleteOrder(\'' + oId + '\')">🗑️ 刪除</button></div></div>' +
           itemsHtml + '<div style="margin-top:8px; padding-top:6px; border-top:1px dashed var(--border-color); font-size:13px; color:var(--accent);">💰 總計金額：<b>NT$ ' + totalNt.toLocaleString() + '</b></div>';
         customerList.appendChild(card);
       }
@@ -1167,7 +1211,7 @@
             itemsHtml += '<div style="font-size:13px; margin-bottom:4px; color:var(--text-main);">• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b> (NT$ ' + ((parseInt(it.ntPrice) || 0) * it.count).toLocaleString() + ')</div>';
           });
         }
-        card.innerHTML = '<div class="customer-name"><span style="color:var(--text-main);">✅ ' + comp.buyerName + ' (總計 NT$ ' + totalNt.toLocaleString() + ') <small style="font-size:11px; color:#666;">(' + comp.completedAt + ')</small></span>' +
+        card.innerHTML = '<div class="customer-name"><span style="color:var(--text-main);">✅ 訂單 ' + (comp.orderId || '一般') + ' - ' + comp.buyerName + ' (NT$ ' + totalNt.toLocaleString() + ') <small style="font-size:11px; color:#666;">(' + comp.completedAt + ')</small></span>' +
           '<div style="display:flex; gap:4px;"><button class="btn-edit-order" style="background:var(--accent);" onclick="restoreCompletedOrder(' + i + ')">↩️ 恢復</button>' +
           '<button class="btn-del-prod" style="padding:2px 8px; font-size:11px;" onclick="deleteCompletedOrder(' + i + ')">刪除</button></div></div>' + itemsHtml;
         compList.appendChild(card);
@@ -1219,7 +1263,7 @@
           var u = b.unit || '100';
           if (!unitTotals[u]) unitTotals[u] = 0;
           unitTotals[u] += b.count;
-          buyersHtml += '<div class="admin-buyer-detail">👤 ' + b.name + ': <b>' + b.count + ' 件</b> (尺寸 ' + u + ')</div>';
+          buyersHtml += '<div class="admin-buyer-detail">📦 [' + (b.orderId || '一般') + '] ' + b.name + ': <b>' + b.count + ' 件</b> (尺寸 ' + u + ')</div>';
         }
 
         var progressHtml = '';
