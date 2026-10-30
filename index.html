@@ -171,27 +171,31 @@
         <button class="btn-close" onclick="closeModal('authModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
       </div>
       
-      <div id="registerFieldsGroup" style="display: none;">
-        <div class="form-group">
-          <label class="form-label">全名 (真實姓名) *</label>
-          <input type="text" id="authFullName" class="form-input" placeholder="請輸入您的全名..." />
-        </div>
-        <div class="form-group">
-          <label class="form-label">電話號碼 *</label>
-          <input type="tel" id="authPhone" class="form-input" placeholder="0912345678" />
-        </div>
+      <!-- 註冊專用欄位：全名 -->
+      <div class="form-group" id="fullNameGroup" style="display: none;">
+        <label class="form-label">全名 (真實姓名) *</label>
+        <input type="text" id="authFullName" class="form-input" placeholder="請輸入您的本名..." />
       </div>
 
+      <!-- 登入/註冊共用：電話號碼 (作為帳號) -->
       <div class="form-group">
+        <label class="form-label">電話號碼 (登入帳號) *</label>
+        <input type="tel" id="authPhone" class="form-input" placeholder="0912345678" />
+      </div>
+
+      <!-- 註冊專用欄位：Email -->
+      <div class="form-group" id="emailGroup" style="display: none;">
         <label class="form-label">電子信箱 (Email) *</label>
         <input type="email" id="authEmail" class="form-input" placeholder="name@example.com" />
       </div>
+
+      <!-- 密碼 -->
       <div class="form-group">
         <label class="form-label">密碼 *</label>
         <input type="password" id="authPassword" class="form-input" placeholder="請輸入密碼 (至少6碼)" />
       </div>
 
-      <button class="btn-submit" id="authSubmitBtn" onclick="handleEmailAuth()">登入帳號</button>
+      <button class="btn-submit" id="authSubmitBtn" onclick="handleAuthAction()">登入帳號</button>
 
       <div style="text-align: center; margin-top: 16px; font-size: 13px;">
         <span id="authToggleText" style="color: #666;">還沒有帳號？</span>
@@ -398,6 +402,11 @@
     var isRegisterMode = false;
     var cartItems = [];
 
+    // 轉換電話號碼為系統內部虛擬 Email 進行 Firebase 驗證
+    function phoneToPseudoEmail(phone) {
+      return phone.replace(/[^0-9]/g, '') + "@koreabuy.app";
+    }
+
     // 監聽 Firebase Auth 登入狀態
     auth.onAuthStateChanged(user => {
       var infoDisplay = document.getElementById('memberInfoDisplay');
@@ -405,11 +414,11 @@
       
       if (user) {
         var metadata = user.reloadUserInfo || {};
-        var displayName = user.displayName || metadata.displayName || user.email.split('@')[0];
-        var phone = metadata.phoneNumber || user.phoneNumber || "未填寫";
-        currentMemberInfo = { name: displayName, phone: phone };
+        var displayName = user.displayName || metadata.displayName || "會員";
+        // 從 displayName 解析出全名與電話
+        currentMemberInfo = { name: displayName, phone: user.email ? user.email.split('@')[0] : "" };
 
-        infoDisplay.innerHTML = '👤 已登入：<b>' + currentMemberInfo.name + '</b> (' + currentMemberInfo.phone + ')';
+        infoDisplay.innerHTML = '👤 已登入：<b>' + currentMemberInfo.name + '</b>';
         authBtn.innerText = '登出';
         authBtn.setAttribute('onclick', 'handleLogout()');
         authBtn.style.background = '#D9534F';
@@ -425,8 +434,9 @@
 
     function openAuthModal() {
       isRegisterMode = false;
-      document.getElementById('authModalTitle').innerText = '🔐 會員登入';
-      document.getElementById('registerFieldsGroup').style.display = 'none';
+      document.getElementById('authModalTitle').innerText = '🔐 會員登入 (以電話號碼)';
+      document.getElementById('fullNameGroup').style.display = 'none';
+      document.getElementById('emailGroup').style.display = 'none';
       document.getElementById('authSubmitBtn').innerText = '登入帳號';
       document.getElementById('authToggleText').innerText = '還沒有帳號？';
       document.getElementById('authToggleBtn').innerText = '點此註冊新會員';
@@ -437,46 +447,51 @@
       isRegisterMode = !isRegisterMode;
       if (isRegisterMode) {
         document.getElementById('authModalTitle').innerText = '📝 註冊新會員';
-        document.getElementById('registerFieldsGroup').style.display = 'block';
+        document.getElementById('fullNameGroup').style.display = 'block';
+        document.getElementById('emailGroup').style.display = 'block';
         document.getElementById('authSubmitBtn').innerText = '確認註冊';
         document.getElementById('authToggleText').innerText = '已經有帳號了？';
         document.getElementById('authToggleBtn').innerText = '點此登入';
       } else {
-        document.getElementById('authModalTitle').innerText = '🔐 會員登入';
-        document.getElementById('registerFieldsGroup').style.display = 'none';
+        document.getElementById('authModalTitle').innerText = '🔐 會員登入 (以電話號碼)';
+        document.getElementById('fullNameGroup').style.display = 'none';
+        document.getElementById('emailGroup').style.display = 'none';
         document.getElementById('authSubmitBtn').innerText = '登入帳號';
         document.getElementById('authToggleText').innerText = '還沒有帳號？';
         document.getElementById('authToggleBtn').innerText = '點此註冊新會員';
       }
     }
 
-    function handleEmailAuth() {
-      var email = document.getElementById('authEmail').value.trim();
-      var password = document.getElementById('authPassword').value;
-      var fullName = document.getElementById('authFullName').value.trim();
+    function handleAuthAction() {
       var phone = document.getElementById('authPhone').value.trim();
+      var password = document.getElementById('authPassword').value;
 
-      if (!email || !password) { alert('請填寫完整 Email 與密碼！'); return; }
+      if (!phone || !password) { alert('請填寫完整電話號碼與密碼！'); return; }
+      var pseudoEmail = phoneToPseudoEmail(phone);
 
       if (isRegisterMode) {
-        if (!fullName || !phone) { alert('註冊會員必須填寫「全名」與「電話號碼」！'); return; }
-        auth.createUserWithEmailAndPassword(email, password)
+        var fullName = document.getElementById('authFullName').value.trim();
+        var email = document.getElementById('authEmail').value.trim();
+
+        if (!fullName || !email) { alert('註冊必須完整填寫「全名」、「電話」、「信箱」與「密碼」！'); return; }
+
+        auth.createUserWithEmailAndPassword(pseudoEmail, password)
           .then(result => {
             return result.user.updateProfile({ displayName: fullName + " (" + phone + ")" });
           })
           .then(() => {
-            alert('🎉 註冊成功並已登入！');
+            alert('🎉 註冊成功並已自動登入！');
             closeModal('authModal');
             location.reload();
           })
           .catch(error => { alert('註冊失敗： ' + error.message); });
       } else {
-        auth.signInWithEmailAndPassword(email, password)
+        auth.signInWithEmailAndPassword(pseudoEmail, password)
           .then(() => {
             alert('✅ 登入成功！');
             closeModal('authModal');
           })
-          .catch(error => { alert('登入失敗： ' + error.message); });
+          .catch(error => { alert('登入失敗：請檢查電話號碼或密碼是否正確。'); });
       }
     }
 
@@ -817,7 +832,7 @@
         if (!p.buyers) p.buyers = [];
         p.buyers.push({
           orderId: orderId,
-          name: currentMemberInfo.name + " (" + currentMemberInfo.phone + ")",
+          name: currentMemberInfo.name,
           count: c.count,
           unit: c.unit,
           bought: 0
@@ -842,7 +857,7 @@
       }
 
       var userOrdersMap = {};
-      var searchNameKey = currentMemberInfo.name;
+      var searchNameKey = currentMemberInfo.name.split(' ')[0]; // 以本名比對
 
       for (var i = 0; i < products.length; i++) {
         var p = products[i];
