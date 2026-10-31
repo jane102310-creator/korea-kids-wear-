@@ -58,7 +58,7 @@
     .cart-badge { position: absolute; top: 2px; right: 22%; background: #D9534F; color: white; font-size: 9px; padding: 1px 5px; border-radius: 10px; font-weight: bold; display: none; }
 
     .admin-nav { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-    .admin-tab-btn { flex: 1; min-width: 30%; padding: 8px 2px; border: none; background: #EFECE6; color: var(--text-sub); font-weight: 600; border-radius: 10px; cursor: pointer; font-size: 11px; text-align: center; }
+    .admin-tab-btn { flex: 1; min-width: 28%; padding: 8px 2px; border: none; background: #EFECE6; color: var(--text-sub); font-weight: 600; border-radius: 10px; cursor: pointer; font-size: 11px; text-align: center; }
     .admin-tab-btn.active { background: var(--accent); color: white; }
     .admin-section { display: none; }
     .admin-section.active { display: block; }
@@ -131,9 +131,14 @@
       </div>
     </div>
 
-    <!-- 4. 會員專區分頁 (可看自己的訂單) -->
+    <!-- 4. 會員專區分頁 (包含個人資料修改與歷史訂單) -->
     <div id="sectionMember" class="page-section">
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: var(--accent);">👤 我的會員訂單專區</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div style="font-size: 16px; font-weight: bold; color: var(--accent);">👤 會員專區</div>
+        <button class="btn-edit-order" id="btnEditMemberProfile" style="display:none; padding: 6px 12px;" onclick="openEditMemberProfileModal()">✏️ 編輯個人資料</button>
+      </div>
+      <div id="memberProfileCard" class="customer-card" style="display:none; background:#FFF; border-color:var(--accent);"></div>
+      <div style="font-size: 15px; font-weight: bold; margin: 16px 0 8px 0; color: var(--text-main);">📦 我的訂單紀錄</div>
       <div id="memberOrdersList"></div>
     </div>
   </div>
@@ -163,6 +168,53 @@
     </button>
   </nav>
 
+  <!-- 會員修改個人資料 Modal -->
+  <div class="modal-overlay" id="editMemberProfileModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1500;">
+    <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 18px; font-weight: 700;">✏️ 修改個人資料</h2>
+        <button class="btn-close" onclick="closeModal('editMemberProfileModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">全名 (真實姓名) *</label>
+        <input type="text" id="editMemberNameInput" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">電子信箱 (Email) *</label>
+        <input type="email" id="editMemberEmailInput" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">登入電話號碼</label>
+        <input type="text" id="editMemberPhoneInput" class="form-input" readonly style="background:#eee;" />
+      </div>
+      <button class="btn-submit" onclick="saveMemberProfile()">儲存個人資料</button>
+    </div>
+  </div>
+
+  <!-- 管理者修改特定會員資料 Modal -->
+  <div class="modal-overlay" id="adminEditUserModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1600;">
+    <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 18px; font-weight: 700;">✏️ 管理者編輯會員資料</h2>
+        <button class="btn-close" onclick="closeModal('adminEditUserModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
+      </div>
+      <input type="hidden" id="adminEditUserUid" />
+      <div class="form-group">
+        <label class="form-label">電話帳號</label>
+        <input type="text" id="adminEditUserPhone" class="form-input" readonly style="background:#eee;" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">會員姓名 *</label>
+        <input type="text" id="adminEditUserName" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">電子信箱 *</label>
+        <input type="email" id="adminEditUserEmail" class="form-input" />
+      </div>
+      <button class="btn-submit" onclick="saveAdminEditUser()">儲存會員資料</button>
+    </div>
+  </div>
+
   <!-- 會員登入 / 註冊彈跳視窗 Modal -->
   <div class="modal-overlay" id="authModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(90,77,65,0.4); display: none; justify-content: center; align-items: flex-end; z-index: 1400;">
     <div class="modal-content" style="background: var(--card-bg); width: 100%; max-width: 480px; border-top-left-radius: 24px; border-top-right-radius: 24px; padding: 24px; max-height: 90vh; overflow-y: auto;">
@@ -171,25 +223,21 @@
         <button class="btn-close" onclick="closeModal('authModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-sub);">✕</button>
       </div>
       
-      <!-- 註冊專用欄位：全名 -->
       <div class="form-group" id="fullNameGroup" style="display: none;">
         <label class="form-label">全名 (真實姓名) *</label>
         <input type="text" id="authFullName" class="form-input" placeholder="請輸入您的本名..." />
       </div>
 
-      <!-- 登入/註冊共用：電話號碼 (作為帳號) -->
       <div class="form-group">
         <label class="form-label">電話號碼 (登入帳號) *</label>
         <input type="tel" id="authPhone" class="form-input" placeholder="0912345678" />
       </div>
 
-      <!-- 註冊專用欄位：Email -->
       <div class="form-group" id="emailGroup" style="display: none;">
         <label class="form-label">電子信箱 (Email) *</label>
         <input type="email" id="authEmail" class="form-input" placeholder="name@example.com" />
       </div>
 
-      <!-- 密碼 -->
       <div class="form-group">
         <label class="form-label">密碼 *</label>
         <input type="password" id="authPassword" class="form-input" placeholder="請輸入密碼 (至少6碼)" />
@@ -294,6 +342,7 @@
       
       <div class="admin-nav">
         <button class="admin-tab-btn active" id="tabBtn1" onclick="switchTab(1)">👕 商品管理</button>
+        <button class="admin-tab-btn" id="tabBtn9" onclick="switchTab(9)">👥 會員管理</button>
         <button class="admin-tab-btn" id="tabBtn7" onclick="switchTab(7)">📋 訂單管理</button>
         <button class="admin-tab-btn" id="tabBtn8" onclick="switchTab(8)">💰 每日營收</button>
         <button class="admin-tab-btn" id="tabBtn2" onclick="switchTab(2)">👥 未完成訂單</button>
@@ -305,6 +354,12 @@
       <!-- 分頁 1: 商品管理 -->
       <div class="admin-section active" id="adminSec1">
         <div id="adminProductList" style="max-height: 32vh; overflow-y: auto; margin-bottom: 12px;"></div>
+        <button class="btn-save-manual" onclick="manualSaveData(true)">💾 手動同步至雲端</button>
+      </div>
+
+      <!-- 分頁 9: 會員管理 (新增) -->
+      <div class="admin-section" id="adminSec9">
+        <div id="adminUserManagementList" style="max-height: 32vh; overflow-y: auto; margin-bottom: 12px;"></div>
         <button class="btn-save-manual" onclick="manualSaveData(true)">💾 手動同步至雲端</button>
       </div>
 
@@ -383,7 +438,7 @@
 
   <script>
     // -----------------------------------------------------------------
-    // 1. Firebase 初始化設定
+    // 1. Firebase 初始化與變數宣告
     // -----------------------------------------------------------------
     const firebaseConfig = {
       apiKey: "AIzaSyBHmyi3-dmv2Zcn8ULXwuIIODSWVdcDTdY",
@@ -398,36 +453,53 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    var currentMemberInfo = { name: "", phone: "" };
+    var currentMemberInfo = { name: "", phone: "", email: "", uid: "" };
+    var userProfilesMap = {}; // 儲存所有會員基本資料 (uid -> profile)
     var isRegisterMode = false;
     var cartItems = [];
 
-    // 轉換電話號碼為系統內部虛擬 Email 進行 Firebase 驗證
     function phoneToPseudoEmail(phone) {
       return phone.replace(/[^0-9]/g, '') + "@koreabuy.app";
     }
 
-    // 監聽 Firebase Auth 登入狀態
+    // 監聽 Auth 狀態
     auth.onAuthStateChanged(user => {
       var infoDisplay = document.getElementById('memberInfoDisplay');
       var authBtn = document.getElementById('memberAuthBtn');
+      var btnEditProfile = document.getElementById('btnEditMemberProfile');
       
       if (user) {
-        var metadata = user.reloadUserInfo || {};
-        var displayName = user.displayName || metadata.displayName || "會員";
-        // 從 displayName 解析出全名與電話
-        currentMemberInfo = { name: displayName, phone: user.email ? user.email.split('@')[0] : "" };
+        var phone = user.email ? user.email.split('@')[0] : "";
+        var name = user.displayName ? user.displayName.split(' (')[0] : "會員";
+        currentMemberInfo = {
+          uid: user.uid,
+          name: name,
+          phone: phone,
+          email: user.photoURL || (phone + "@example.com") // 使用 photoURL 作為備用真信箱欄位
+        };
 
-        infoDisplay.innerHTML = '👤 已登入：<b>' + currentMemberInfo.name + '</b>';
+        infoDisplay.innerHTML = '👤 已登入：<b>' + currentMemberInfo.name + '</b> (' + currentMemberInfo.phone + ')';
         authBtn.innerText = '登出';
         authBtn.setAttribute('onclick', 'handleLogout()');
         authBtn.style.background = '#D9534F';
+        if (btnEditProfile) btnEditProfile.style.display = 'inline-block';
+        
+        // 自動同步該會員資料至 Firestore userProfiles 集合
+        db.collection('userProfiles').doc(user.uid).set({
+          uid: user.uid,
+          name: currentMemberInfo.name,
+          phone: currentMemberInfo.phone,
+          email: currentMemberInfo.email,
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
       } else {
-        currentMemberInfo = { name: "", phone: "" };
+        currentMemberInfo = { name: "", phone: "", email: "", uid: "" };
         infoDisplay.innerHTML = '👤 尚未登入（請先登入或註冊會員）';
         authBtn.innerText = '會員登入 / 註冊';
         authBtn.setAttribute('onclick', 'openAuthModal()');
         authBtn.style.background = 'var(--accent)';
+        if (btnEditProfile) btnEditProfile.style.display = 'none';
       }
       renderMemberOrders();
     });
@@ -477,9 +549,19 @@
 
         auth.createUserWithEmailAndPassword(pseudoEmail, password)
           .then(result => {
-            return result.user.updateProfile({ displayName: fullName + " (" + phone + ")" });
+            return result.user.updateProfile({ 
+              displayName: fullName + " (" + phone + ")",
+              photoURL: email
+            }).then(() => result.user);
           })
-          .then(() => {
+          .then(user => {
+            db.collection('userProfiles').doc(user.uid).set({
+              uid: user.uid,
+              name: fullName,
+              phone: phone,
+              email: email,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
             alert('🎉 註冊成功並已自動登入！');
             closeModal('authModal');
             location.reload();
@@ -496,30 +578,83 @@
     }
 
     function handleLogout() {
-      auth.signOut().then(() => {
-        alert('已成功登出！');
-      });
+      auth.signOut().then(() => { alert('已成功登出！'); });
+    }
+
+    // -----------------------------------------------------------------
+    // 會員編輯資料邏輯 (前台 & 後台)
+    // -----------------------------------------------------------------
+    function openEditMemberProfileModal() {
+      if (!currentMemberInfo.uid) return;
+      document.getElementById('editMemberNameInput').value = currentMemberInfo.name;
+      document.getElementById('editMemberEmailInput').value = currentMemberInfo.email;
+      document.getElementById('editMemberPhoneInput').value = currentMemberInfo.phone;
+      document.getElementById('editMemberProfileModal').style.display = 'flex';
+    }
+
+    function saveMemberProfile() {
+      var newName = document.getElementById('editMemberNameInput').value.trim();
+      var newEmail = document.getElementById('editMemberEmailInput').value.trim();
+      if (!newName || !newEmail) { alert('請填寫完整姓名與信箱！'); return; }
+
+      var user = auth.currentUser;
+      if (user) {
+        user.updateProfile({
+          displayName: newName + " (" + currentMemberInfo.phone + ")",
+          photoURL: newEmail
+        }).then(() => {
+          db.collection('userProfiles').doc(user.uid).set({
+            name: newName,
+            email: newEmail
+          }, { merge: true });
+
+          currentMemberInfo.name = newName;
+          currentMemberInfo.email = newEmail;
+
+          closeModal('editMemberProfileModal');
+          renderMemberOrders();
+          alert('✅ 個人資料更新成功！');
+        }).catch(err => { alert('更新失敗：' + err.message); });
+      }
+    }
+
+    function openAdminEditUserModal(uid) {
+      var profile = userProfilesMap[uid];
+      if (!profile) return;
+      document.getElementById('adminEditUserUid').value = uid;
+      document.getElementById('adminEditUserPhone').value = profile.phone || '';
+      document.getElementById('adminEditUserName').value = profile.name || '';
+      document.getElementById('adminEditUserEmail').value = profile.email || '';
+      document.getElementById('adminEditUserModal').style.display = 'flex';
+    }
+
+    function saveAdminEditUser() {
+      var uid = document.getElementById('adminEditUserUid').value;
+      var newName = document.getElementById('adminEditUserName').value.trim();
+      var newEmail = document.getElementById('adminEditUserEmail').value.trim();
+      if (!newName || !newEmail) { alert('請填寫完整姓名與信箱！'); return; }
+
+      db.collection('userProfiles').doc(uid).set({
+        name: newName,
+        email: newEmail
+      }, { merge: true }).then(() => {
+        closeModal('adminEditUserModal');
+        updateAdminUserManagementList();
+        alert('✅ 管理者已成功修改會員資料！');
+      }).catch(err => { alert('修改失敗：' + err.message); });
     }
 
     function handleImageUpload(inputElement, targetInputId) {
       var file = inputElement.files[0];
       if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) {
-        alert("⚠️ 圖片大小不能超過 2MB！");
-        inputElement.value = "";
-        return;
-      }
-
+      if (file.size > 2 * 1024 * 1024) { alert("⚠️ 圖片大小不能超過 2MB！"); inputElement.value = ""; return; }
       var reader = new FileReader();
-      reader.onload = function(e) {
-        document.getElementById(targetInputId).value = e.target.result;
-      };
+      reader.onload = function(e) { document.getElementById(targetInputId).value = e.target.result; };
       reader.readAsDataURL(file);
     }
 
     // -----------------------------------------------------------------
-    // 2. 預設童裝資料
+    // 2. 預設商品與資料庫接軌
     // -----------------------------------------------------------------
     var defaultProducts = [
       { "id": 1, "name": "正韓小熊刷毛大學T", "prices": {}, "buyers": [], "category": "上衣/T恤", "units": ["90", "100", "110", "120", "130"], "note": "版型正常，材質超舒服", "image": "", "purchasedCounts": {}, "isCompleted": false, "isHidden": false },
@@ -546,18 +681,16 @@
 
     window.onload = function() {
       initRealtimeListener();
+      initUserProfilesListener();
     };
 
     function getUnitPricing(p, unitKey) {
       if (!p.prices) p.prices = {};
-      if (!p.prices[unitKey]) {
-        p.prices[unitKey] = { krwPrice: '', rate: GLOBAL_EXCHANGE_RATE, ntPrice: '' };
-      }
+      if (!p.prices[unitKey]) { p.prices[unitKey] = { krwPrice: '', rate: GLOBAL_EXCHANGE_RATE, ntPrice: '' }; }
       var info = p.prices[unitKey];
       var krw = parseInt((info.krwPrice || '').replace(/,/g, '')) || 0;
       var rate = parseFloat(info.rate) || GLOBAL_EXCHANGE_RATE;
       var manualNt = parseInt((info.ntPrice || '').replace(/,/g, ''));
-      
       var calculatedNt = (!isNaN(manualNt) && manualNt > 0) ? manualNt : (krw > 0 && rate > 0 ? Math.round(krw / rate) : 0);
       return { krwPrice: info.krwPrice || '', rate: rate, ntPrice: info.ntPrice || '', finalNt: calculatedNt };
     }
@@ -566,13 +699,8 @@
       db.collection('storeData').doc('kidsStoreDoc').onSnapshot(doc => {
         if (doc.exists) {
           const data = doc.data();
-          if (data && Array.isArray(data.items) && data.items.length > 0) {
-            products = data.items;
-          } else {
-            products = defaultProducts;
-            manualSaveData(false);
-          }
-
+          if (data && Array.isArray(data.items) && data.items.length > 0) products = data.items;
+          else { products = defaultProducts; manualSaveData(false); }
           if (data && Array.isArray(data.completedOrders)) completedOrders = data.completedOrders;
           if (data && data.siteTitle) {
             SITE_TITLE = data.siteTitle;
@@ -583,29 +711,32 @@
             GLOBAL_EXCHANGE_RATE = data.exchangeRate;
             document.getElementById('exchangeRateInput').value = GLOBAL_EXCHANGE_RATE;
           }
-        } else {
-          products = defaultProducts;
-          completedOrders = [];
-          manualSaveData(false);
-        }
+        } else { products = defaultProducts; completedOrders = []; manualSaveData(false); }
 
         renderList();
         renderCartView();
         renderMemberOrders();
 
         if (document.getElementById('adminModal').style.display === 'flex') {
-          if (document.activeElement && document.activeElement.classList.contains('stats-input')) {
-            // 輸入中不刷新
-          } else {
+          if (!document.activeElement || !document.activeElement.classList.contains('stats-input')) {
             updateAdminProductList();
             updateAdminStats();
             updateDailyRevenueStats();
             updateCustomerStats();
             updateCompletedOrdersStats();
+            updateAdminUserManagementList();
           }
         }
-      }, err => {
-        console.error("Listener error:", err);
+      });
+    }
+
+    function initUserProfilesListener() {
+      db.collection('userProfiles').onSnapshot(snapshot => {
+        userProfilesMap = {};
+        snapshot.forEach(doc => { userProfilesMap[doc.id] = doc.data(); });
+        if (document.getElementById('adminModal').style.display === 'flex') {
+          updateAdminUserManagementList();
+        }
       });
     }
 
@@ -617,11 +748,8 @@
         siteTitle: SITE_TITLE,
         exchangeRate: GLOBAL_EXCHANGE_RATE,
         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        if (showAlert) alert('✅ 資料已成功同步儲存至雲端！');
-      }).catch(err => {
-        alert('儲存至雲端失敗：' + err.message);
-      });
+      }).then(() => { if (showAlert) alert('✅ 資料已成功同步儲存至雲端！'); })
+      .catch(err => { alert('儲存至雲端失敗：' + err.message); });
     }
 
     function saveExchangeRate() {
@@ -636,9 +764,7 @@
     function updateUnitPricingInput(itemIdx, unitKey, field, val, inputElement) {
       var p = products[itemIdx];
       if (!p.prices) p.prices = {};
-      if (!p.prices[unitKey]) {
-        p.prices[unitKey] = { krwPrice: '', rate: GLOBAL_EXCHANGE_RATE, ntPrice: '' };
-      }
+      if (!p.prices[unitKey]) { p.prices[unitKey] = { krwPrice: '', rate: GLOBAL_EXCHANGE_RATE, ntPrice: '' }; }
       p.prices[unitKey][field] = val;
       manualSaveData(false);
     }
@@ -686,8 +812,7 @@
       SITE_TITLE = newTitle;
       document.getElementById('pageTitleText').innerText = newTitle;
       document.getElementById('headerTitleDisplay').innerText = newTitle;
-      manualSaveData(false);
-      alert('標題已更新！');
+      manualSaveData(false); alert('標題已更新！');
     }
 
     function setCategoryFilter(category, btnElement) {
@@ -700,9 +825,7 @@
     function fixImageUrl(url) {
       if (!url) return '';
       url = url.trim();
-      if (url.includes('freeimage.host/i/')) {
-        return 'https://iili.io/' + url.split('/i/').pop() + '.jpg';
-      }
+      if (url.includes('freeimage.host/i/')) return 'https://iili.io/' + url.split('/i/').pop() + '.jpg';
       return url;
     }
 
@@ -743,38 +866,25 @@
       var current = modalCartUnits[unitName] || 0;
       var next = current + delta;
       if (next < 0) next = 0;
-      
-      if (next === 0) {
-        delete modalCartUnits[unitName];
-      } else {
-        modalCartUnits[unitName] = next;
-      }
+      if (next === 0) delete modalCartUnits[unitName];
+      else modalCartUnits[unitName] = next;
       var displayEl = document.getElementById('modal_qty_' + unitName);
       if (displayEl) displayEl.innerText = next;
     }
 
     function addToCartModal() {
       if (!currentMemberInfo.name) { alert('請先登入會員才能將商品放入購物車！'); openAuthModal(); return; }
-
       var unitNames = Object.keys(modalCartUnits);
       if (unitNames.length === 0) { alert('請至少選擇一個尺寸的數量！'); return; }
 
       var p = products[currentModalItemIdx];
-      
       for (var i = 0; i < unitNames.length; i++) {
         var uName = unitNames[i];
         var qty = modalCartUnits[uName];
         if (qty > 0) {
-          cartItems.push({
-            itemIdx: currentModalItemIdx,
-            name: p.name,
-            unit: uName,
-            count: qty,
-            image: p.image || ''
-          });
+          cartItems.push({ itemIdx: currentModalItemIdx, name: p.name, unit: uName, count: qty, image: p.image || '' });
         }
       }
-
       updateCartBadge();
       closeModal('productDetailModal');
       alert('🛒 已成功放入購物車！');
@@ -782,31 +892,24 @@
 
     function updateCartBadge() {
       var badge = document.getElementById('cartBadge');
-      if (cartItems.length > 0) {
-        badge.innerText = cartItems.length;
-        badge.style.display = 'block';
-      } else {
-        badge.style.display = 'none';
-      }
+      if (cartItems.length > 0) { badge.innerText = cartItems.length; badge.style.display = 'block'; }
+      else { badge.style.display = 'none'; }
     }
 
     function renderCartView() {
       var container = document.getElementById('cartContentList');
       var checkoutArea = document.getElementById('cartCheckoutArea');
-      if (!container) return;
-      container.innerHTML = '';
+      if (!container) return; container.innerHTML = '';
 
       if (cartItems.length === 0) {
         container.innerHTML = '<div style="text-align:center; color:#999; padding:30px;">購物車目前空空如也～趕快去挑選童裝吧！</div>';
-        checkoutArea.style.display = 'none';
-        return;
+        checkoutArea.style.display = 'none'; return;
       }
 
       checkoutArea.style.display = 'block';
       for (var i = 0; i < cartItems.length; i++) {
         var c = cartItems[i];
-        var card = document.createElement('div');
-        card.className = 'customer-card';
+        var card = document.createElement('div'); card.className = 'customer-card';
         card.innerHTML = '<div class="customer-name"><span>👕 ' + c.name + '</span>' +
           '<button class="btn-del-prod" style="padding:2px 8px; font-size:11px;" onclick="removeFromCart(' + i + ')">移除</button></div>' +
           '<div style="font-size:13px; color:var(--text-sub);">尺寸：<b>' + c.unit + '</b> | 數量：<b>' + c.count + ' 件</b></div>';
@@ -816,8 +919,7 @@
 
     function removeFromCart(index) {
       cartItems.splice(index, 1);
-      updateCartBadge();
-      renderCartView();
+      updateCartBadge(); renderCartView();
     }
 
     function submitCartOrder() {
@@ -825,18 +927,13 @@
       if (cartItems.length === 0) { alert('購物車是空的！'); return; }
 
       var orderId = 'ORD' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 90 + 10);
+      var buyerDisplayName = currentMemberInfo.name + ' (' + currentMemberInfo.phone + ')';
 
       for (var i = 0; i < cartItems.length; i++) {
         var c = cartItems[i];
         var p = products[c.itemIdx];
         if (!p.buyers) p.buyers = [];
-        p.buyers.push({
-          orderId: orderId,
-          name: currentMemberInfo.name,
-          count: c.count,
-          unit: c.unit,
-          bought: 0
-        });
+        p.buyers.push({ orderId: orderId, name: buyerDisplayName, count: c.count, unit: c.unit, bought: 0 });
       }
 
       cartItems = [];
@@ -846,73 +943,110 @@
       alert('🎉 訂單已成功送出！系統已自動為您產生訂單編號：' + orderId);
     }
 
+    // -----------------------------------------------------------------
+    // 渲染會員專區 (個人資料卡片 + 未完成/已完成訂單列表)
+    // -----------------------------------------------------------------
     function renderMemberOrders() {
       var memberListEl = document.getElementById('memberOrdersList');
+      var profileCardEl = document.getElementById('memberProfileCard');
       if (!memberListEl) return;
       memberListEl.innerHTML = '';
 
       if (!currentMemberInfo.name) {
-        memberListEl.innerHTML = '<div style="text-align:center; color:#999; padding:30px;">請先登入會員以查看您的訂單紀錄</div>';
+        if (profileCardEl) profileCardEl.style.display = 'none';
+        memberListEl.innerHTML = '<div style="text-align:center; color:#999; padding:30px;">請先登入會員以查看您的個人資料與訂單紀錄</div>';
         return;
       }
 
-      var userOrdersMap = {};
-      var searchNameKey = currentMemberInfo.name.split(' ')[0]; // 以本名比對
+      // 渲染個人資料卡
+      if (profileCardEl) {
+        profileCardEl.style.display = 'block';
+        profileCardEl.innerHTML = '<div style="font-size:15px; font-weight:bold; color:var(--accent); margin-bottom:6px;">👤 ' + currentMemberInfo.name + '</div>' +
+          '<div style="font-size:13px; color:var(--text-sub); display:flex; flex-direction:column; gap:4px;">' +
+            '<div>📱 登入電話：<b>' + currentMemberInfo.phone + '</b></div>' +
+            '<div>✉️ 電子信箱：<b>' + (currentMemberInfo.email || '未設定') + '</b></div>' +
+          '</div>';
+      }
 
+      var searchPhoneKey = currentMemberInfo.phone;
+      var searchNameKey = currentMemberInfo.name;
+
+      // 1. 未完成訂單
+      var activeOrdersMap = {};
       for (var i = 0; i < products.length; i++) {
         var p = products[i];
         if (!p.buyers) continue;
         for (var j = 0; j < p.buyers.length; j++) {
           var b = p.buyers[j];
-          if (b.name && b.name.includes(searchNameKey)) {
+          if (b.name && (b.name.includes(searchPhoneKey) || b.name.includes(searchNameKey))) {
             var oId = b.orderId || '一般登記';
-            if (!userOrdersMap[oId]) userOrdersMap[oId] = [];
+            if (!activeOrdersMap[oId]) activeOrdersMap[oId] = [];
             var pricing = getUnitPricing(p, b.unit || '100');
-            userOrdersMap[oId].push({ itemName: p.name, count: b.count, unit: b.unit || '100', ntPrice: pricing.finalNt });
+            activeOrdersMap[oId].push({ itemName: p.name, count: b.count, unit: b.unit || '100', ntPrice: pricing.finalNt });
           }
         }
       }
 
-      var orderIds = Object.keys(userOrdersMap);
-      if (orderIds.length === 0) {
-        memberListEl.innerHTML = '<div style="text-align:center; color:#999; padding:30px;">目前沒有未完成的訂單紀錄</div>';
-        return;
+      var activeOrderIds = Object.keys(activeOrdersMap);
+      if (activeOrderIds.length > 0) {
+        var secTitle = document.createElement('div');
+        secTitle.style.cssText = "font-size:14px; font-weight:bold; color:#D9534F; margin-bottom:8px;";
+        secTitle.innerText = "⏳ 處理中的未完成訂單 (" + activeOrderIds.length + ")";
+        memberListEl.appendChild(secTitle);
+
+        for (var k = 0; k < activeOrderIds.length; k++) {
+          var oId = activeOrderIds[k];
+          var items = activeOrdersMap[oId];
+          var card = document.createElement('div'); card.className = 'customer-card';
+          var itemsHtml = ''; var totalNt = 0;
+
+          for (var m = 0; m < items.length; m++) {
+            var it = items[m]; totalNt += it.ntPrice * it.count;
+            itemsHtml += '<div style="font-size:13px; margin-bottom:4px; color:var(--text-main);">• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b> (NT$ ' + (it.ntPrice * it.count).toLocaleString() + ')</div>';
+          }
+          card.innerHTML = '<div class="customer-name"><span>📦 訂單：' + oId + '</span><span style="color:#D9534F;">處理中 | NT$ ' + totalNt.toLocaleString() + '</span></div>' + itemsHtml;
+          memberListEl.appendChild(card);
+        }
       }
 
-      for (var k = 0; k < orderIds.length; k++) {
-        var oId = orderIds[k];
-        var items = userOrdersMap[oId];
-        var card = document.createElement('div');
-        card.className = 'customer-card';
-        var itemsHtml = '';
-        var totalNt = 0;
+      // 2. 已完成訂單
+      var myCompleted = completedOrders.filter(comp => comp.buyerName && (comp.buyerName.includes(searchPhoneKey) || comp.buyerName.includes(searchNameKey)));
+      if (myCompleted.length > 0) {
+        var compTitle = document.createElement('div');
+        compTitle.style.cssText = "font-size:14px; font-weight:bold; color:#28A745; margin-top:16px; margin-bottom:8px;";
+        compTitle.innerText = "✅ 已完成的歷史訂單 (" + myCompleted.length + ")";
+        memberListEl.appendChild(compTitle);
 
-        for (var m = 0; m < items.length; m++) {
-          var it = items[m];
-          totalNt += it.ntPrice * it.count;
-          itemsHtml += '<div style="font-size:13px; margin-bottom:4px; color:var(--text-main);">• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b> (NT$ ' + (it.ntPrice * it.count).toLocaleString() + ')</div>';
+        for (var cIdx = 0; cIdx < myCompleted.length; cIdx++) {
+          var comp = myCompleted[cIdx];
+          var card = document.createElement('div'); card.className = 'customer-card'; card.style.background = "#F4EBE1";
+          var itemsHtml = ''; var totalNt = 0;
+          if (comp.items) {
+            comp.items.forEach(it => {
+              totalNt += (parseInt(it.ntPrice) || 0) * it.count;
+              itemsHtml += '<div style="font-size:13px; margin-bottom:4px; color:var(--text-main);">• ' + it.itemName + ' (尺寸 ' + it.unit + '): <b>' + it.count + ' 件</b> (NT$ ' + ((parseInt(it.ntPrice) || 0) * it.count).toLocaleString() + ')</div>';
+            });
+          }
+          card.innerHTML = '<div class="customer-name"><span style="color:#28A745;">🎉 訂單：' + (comp.orderId || '已完成') + '</span><span style="color:#28A745;">已完成 | NT$ ' + totalNt.toLocaleString() + '</span></div>' + itemsHtml;
+          memberListEl.appendChild(card);
         }
+      }
 
-        card.innerHTML = '<div class="customer-name"><span>📦 訂單編號：' + oId + '</span><span style="color:var(--accent);">總計 NT$ ' + totalNt.toLocaleString() + '</span></div>' + itemsHtml;
-        memberListEl.appendChild(card);
+      if (activeOrderIds.length === 0 && myCompleted.length === 0) {
+        memberListEl.innerHTML += '<div style="text-align:center; color:#999; padding:20px;">目前沒有任何訂單紀錄</div>';
       }
     }
 
     function renderList() {
       var itemList = document.getElementById('itemListHome');
-      if (!itemList) return;
-      itemList.innerHTML = '';
+      if (!itemList) return; itemList.innerHTML = '';
 
       for (var i = 0; i < products.length; i++) {
         var product = products[i];
         if (product.isHidden) continue;
+        if (currentCategoryFilter !== '全部' && currentCategoryFilter !== 'default_all' && product.category !== currentCategoryFilter) continue;
 
-        if (currentCategoryFilter !== '全部' && currentCategoryFilter !== 'default_all' && product.category !== currentCategoryFilter) {
-          continue;
-        }
-
-        var card = document.createElement('div');
-        card.className = 'item-card';
+        var card = document.createElement('div'); card.className = 'item-card';
         card.setAttribute('onclick', 'openProductDetailModal(' + i + ')');
 
         var defaultSvg = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%238C705F" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
@@ -923,14 +1057,13 @@
             '<div class="item-name">' + product.name + '</div>' +
             '<div class="item-tags"><span class="tag tag-category">' + product.category + '</span></div>' +
           '</div>';
-        
         itemList.appendChild(card);
       }
     }
 
     function openAdminPortal() {
       if (isAuthed) {
-        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats();
+        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats(); updateAdminUserManagementList();
         document.getElementById('adminModal').style.display = 'flex';
       } else {
         document.getElementById('adminPwdInput').value = '';
@@ -945,7 +1078,7 @@
       if (pwd === ADMIN_PASSWORD) {
         isAuthed = true;
         closeModal('loginModal');
-        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats();
+        updateAdminProductList(); updateAdminStats(); updateDailyRevenueStats(); updateCustomerStats(); updateCompletedOrdersStats(); updateAdminUserManagementList();
         document.getElementById('adminModal').style.display = 'flex';
       } else { alert('密碼錯誤！'); }
     }
@@ -960,6 +1093,50 @@
       localStorage.setItem('korea_kids_pwd', newP);
       alert('密碼修改成功！');
       document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = ''; document.getElementById('confirmPwd').value = '';
+    }
+
+    // -----------------------------------------------------------------
+    // 管理者後台：👥 會員管理分頁邏輯 (新增)
+    // -----------------------------------------------------------------
+    function updateAdminUserManagementList() {
+      var container = document.getElementById('adminUserManagementList');
+      if (!container) return; container.innerHTML = '';
+
+      var uids = Object.keys(userProfilesMap);
+      var header = document.createElement('div');
+      header.style.cssText = "font-size:16px; font-weight:bold; margin-bottom:14px; padding-bottom:8px; border-bottom:2px solid var(--border-color);";
+      header.innerText = '👥 註冊會員總數：' + uids.length + ' 位';
+      container.appendChild(header);
+
+      if (uids.length === 0) {
+        container.innerHTML += '<div style="text-align:center; color:#999; padding:20px;">尚無註冊會員資料</div>';
+        return;
+      }
+
+      uids.forEach(uid => {
+        var profile = userProfilesMap[uid];
+        var card = document.createElement('div'); card.className = 'customer-card';
+        var phone = profile.phone || '無電話';
+        var name = profile.name || '未填寫本名';
+        var email = profile.email || '無Email';
+
+        // 統計該會員的訂單數量
+        var userActiveOrderCount = 0;
+        products.forEach(p => {
+          if (p.buyers) {
+            p.buyers.forEach(b => {
+              if (b.name && (b.name.includes(phone) || b.name.includes(name))) userActiveOrderCount++;
+            });
+          }
+        });
+
+        card.innerHTML = '<div class="customer-name"><span>👤 ' + name + ' <small style="color:#666;">(' + phone + ')</small></span>' +
+          '<button class="btn-edit-order" onclick="openAdminEditUserModal(\'' + uid + '\')">✏️ 修改資料</button></div>' +
+          '<div style="font-size:12px; color:var(--text-sub); margin-bottom:6px;">✉️ 信箱：' + email + '</div>' +
+          '<div style="font-size:12px; color:var(--accent);">📦 目前未完成訂單項目：<b>' + userActiveOrderCount + ' 項</b></div>';
+
+        container.appendChild(card);
+      });
     }
 
     function openAdminEditOrderModal(itemIdx, buyerName, unitName, currentCount) {
@@ -1313,15 +1490,16 @@
 
     function switchTab(tabNum) {
       document.querySelectorAll('.admin-tab-btn').forEach((btn, idx) => {
-        var targets = [1, 7, 8, 2, 6, 3, 4];
+        var targets = [1, 9, 7, 8, 2, 6, 3, 4];
         btn.className = 'admin-tab-btn' + (targets[idx] === tabNum ? ' active' : '');
       });
       document.querySelectorAll('.admin-section').forEach((sec, idx) => {
-        var targets = [1, 7, 8, 2, 6, 3, 4];
+        var targets = [1, 9, 7, 8, 2, 6, 3, 4];
         sec.className = 'admin-section' + (targets[idx] === tabNum ? ' active' : '');
       });
 
       if (tabNum === 1) updateAdminProductList();
+      else if (tabNum === 9) updateAdminUserManagementList();
       else if (tabNum === 7) updateAdminStats();
       else if (tabNum === 8) updateDailyRevenueStats();
       else if (tabNum === 2) updateCustomerStats();
