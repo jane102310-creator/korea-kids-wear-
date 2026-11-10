@@ -99,6 +99,15 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
     <div id="buyList"></div>
   </div>
 
+  <!-- 出貨紀錄 -->
+  <div id="s-ship" class="sec">
+    <div class="stats" id="shipStats"></div>
+    <input id="sq" placeholder="🔍 搜尋買家、款式、訂單編號" style="margin-bottom:10px">
+    <div class="pills" id="shipPills"></div>
+    <button class="btn big" style="margin:0 0 12px" data-act="newShip">📤 新增出貨</button>
+    <div id="shipList"></div>
+  </div>
+
   <!-- 檔口 -->
   <div id="s-stall" class="sec">
     <button class="btn big" style="margin:0 0 12px" data-act="newStall">🏪 新增檔口</button>
@@ -115,10 +124,11 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
       <b>匯出資料</b>
       <button class="btn big line" data-act="exportStock">📦 匯出庫存 CSV</button>
       <button class="btn big line" data-act="exportBuy">📝 匯出叫貨紀錄 CSV</button>
+      <button class="btn big line" data-act="exportShip">📤 匯出出貨紀錄 CSV</button>
     </div>
     <div class="box">
       <b>修正庫存</b>
-      <p class="muted" style="margin-top:4px">庫存數字對不上時，依「已到貨」的叫貨紀錄重新計算（會覆蓋手動 +／− 的調整）。</p>
+      <p class="muted" style="margin-top:4px">庫存數字對不上時，依「已到貨的叫貨 − 出貨紀錄」重新計算（會覆蓋手動 +／− 的調整）。</p>
       <button class="btn big line" data-act="recalc">🔄 依叫貨紀錄重算庫存</button>
     </div>
   </div>
@@ -127,6 +137,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 <nav id="nav" style="display:none">
   <button class="on" data-act="nav" data-id="stock">📦<br>庫存</button>
   <button data-act="nav" data-id="buy">📝<br>叫貨紀錄</button>
+  <button data-act="nav" data-id="ship">📤<br>出貨</button>
   <button data-act="nav" data-id="stall">🏪<br>檔口</button>
   <button data-act="nav" data-id="set">⚙️<br>設定</button>
 </nav>
@@ -166,6 +177,25 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   <button class="btn big red" id="bDel" data-act="delBuy">刪除此紀錄</button>
 </div></div>
 
+<!-- 出貨 -->
+<div class="mask" id="m-ship"><div class="sheet">
+  <h2><b id="hTitle">新增出貨</b><span data-act="close" data-id="m-ship">✕</span></h2>
+  <div class="two">
+    <div><label>日期</label><input id="hDate" type="date"></div>
+    <div><label>平台</label><select id="hPlat"></select></div>
+  </div>
+  <label>款式 *</label><select id="hProd"></select>
+  <label>各尺寸出貨數量 <span class="muted">（灰字為目前庫存）</span></label><div class="sizes" id="hSizes"></div>
+  <div class="two">
+    <div><label>買家</label><input id="hBuyer"></div>
+    <div><label>訂單編號</label><input id="hOrder"></div>
+  </div>
+  <label>單件售價 NT$</label><input id="hNt" type="number" inputmode="numeric">
+  <label>備註</label><input id="hNote">
+  <button class="btn big" data-act="saveShip">儲存（自動扣庫存）</button>
+  <button class="btn big red" id="hDel" data-act="delShip">刪除此紀錄（庫存加回）</button>
+</div></div>
+
 <!-- 檔口 -->
 <div class="mask" id="m-stall"><div class="sheet">
   <h2><b id="tTitle">新增檔口</b><span data-act="close" data-id="m-stall">✕</span></h2>
@@ -180,6 +210,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 <div id="toast"></div>
 
 <script>
+const PLATS=['蝦皮','賣貨便','面交','其他'];
 const CATS=["上衣/T恤","褲子/裙裝","外套/針織","配件/鞋帽","其他"];
 firebase.initializeApp({
   apiKey:"AIzaSyBHmyi3-dmv2Zcn8ULXwuIIODSWVdcDTdY",authDomain:"korea-buy-list.firebaseapp.com",
@@ -197,8 +228,8 @@ const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOStr
 function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2400)}
 const ph='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%238C705F" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
 
-let products=[],stalls=[],buys=[],settings={rate:41.5};
-let stallFilter='全部',buyFilter='ordered',editId=null,unsubs=[];
+let products=[],stalls=[],buys=[],ships=[],settings={rate:41.5};
+let platFilter='全部',stallFilter='全部',buyFilter='ordered',editId=null,unsubs=[];
 
 // 舊版商品的價格存在 prices[尺寸]，新版用 krw / nt；兩種都讀得到
 const pKrw=p=>num(p.krw)||num(Object.values(p.prices||{}).map(x=>x&&x.krw).find(v=>num(v)));
@@ -216,13 +247,13 @@ auth.onAuthStateChanged(u=>{
   unsubs.push(
     db.collection('kids_products').onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
     db.collection('kids_stalls').onSnapshot(s=>{stalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
-    db.collection('kids_purchases').onSnapshot(s=>{buys=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));render()},err),
+    db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));buys=all.filter(x=>x.type!=='ship');ships=all.filter(x=>x.type==='ship');render()},err),
     db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate},err)
   );
 });
 
 // ===== 畫面 =====
-function render(){renderStock();renderBuys();renderStalls()}
+function render(){renderStock();renderBuys();renderShips();renderStalls()}
 function renderStock(){
   const kw=$('q').value.trim().toLowerCase();
   const total=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0),0);
@@ -233,7 +264,8 @@ function renderStock(){
   const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||String(p.name).toLowerCase().includes(kw)));
   $('stockList').innerHTML=list.length?list.map(p=>{
     const sizes=(p.units||[]).map(u=>`<div class="sz ${stockOf(p,u)<=0?'zero':''}"><span>${esc(u)}</span><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="-1">−</button><b>${stockOf(p,u)}</b><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="1">+</button></div>`).join('');
-    const price=[pKrw(p)?krw(pKrw(p)):'',pNt(p)?'售 '+nt(pNt(p)):''].filter(Boolean).join(' · ');
+    const sold=ships.filter(h=>h.productId===p.id).reduce((a,h)=>a+sumQty(h),0);
+    const price=[pKrw(p)?krw(pKrw(p)):'',pNt(p)?'售 '+nt(pNt(p)):'',sold?'已賣 '+sold+' 件':''].filter(Boolean).join(' · ');
     return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info"><b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">🏪 ${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
   }).join(''):`<div class="empty">${products.length?'找不到符合的款式':'還沒有款式，先新增一個吧'}</div>`;
 }
@@ -253,6 +285,21 @@ function renderBuys(){
       ${b.note?`<div class="muted">📝 ${esc(b.note)}</div>`:''}
       <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">↩️ 改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">✅ 到貨入庫</button>`}</div></div>`;
   }).join(''):'<div class="empty">沒有紀錄</div>';
+}
+function renderShips(){
+  const kw=$('sq').value.trim().toLowerCase();
+  const ym=today().slice(0,7);
+  const mon=ships.filter(h=>String(h.date).startsWith(ym));
+  $('shipStats').innerHTML=`<div><b>${mon.length}</b><small>本月出貨筆數</small></div><div><b>${mon.reduce((a,h)=>a+sumQty(h),0)}</b><small>本月出貨件數</small></div><div><b>${nt(mon.reduce((a,h)=>a+sumQty(h)*num(h.nt),0))}</b><small>本月營收</small></div>`;
+  $('shipPills').innerHTML=['全部',...PLATS].map(t=>`<button class="pill ${t===platFilter?'on':''}" data-act="platFilter" data-id="${esc(t)}">${esc(t)}</button>`).join('');
+  const list=ships.filter(h=>(platFilter==='全部'||h.platform===platFilter)&&(!kw||[h.buyer,h.productName,h.orderNo].some(v=>String(v||'').toLowerCase().includes(kw))));
+  $('shipList').innerHTML=list.length?list.map(h=>{
+    const q=Object.entries(h.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
+    return `<div class="box" data-act="editShip" data-id="${h.id}" style="cursor:pointer"><div class="row"><b>${esc(h.productName)}</b><span class="tag">${esc(h.platform||'其他')}</span></div>
+      <div class="row muted"><span>👤 ${esc(h.buyer||'未填買家')}${h.orderNo?'・#'+esc(h.orderNo):''}</span><span>${esc(h.date)}</span></div>
+      <div class="row"><span>${q||'—'}</span><span class="price" style="color:var(--ok);font-weight:700">${nt(sumQty(h)*num(h.nt))}</span></div>
+      ${h.note?`<div class="muted">📝 ${esc(h.note)}</div>`:''}</div>`;
+  }).join(''):'<div class="empty">沒有出貨紀錄</div>';
 }
 function renderStalls(){
   $('stallList').innerHTML=stalls.length?stalls.map(s=>{
@@ -354,6 +401,32 @@ const ACT={
     const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'ordered'});moveStock(batch,b,-1);
     await commit(batch,'已改回未到貨');
   },
+  // 出貨
+  platFilter(id){platFilter=id;renderShips()},
+  newShip(){
+    if(!products.length)return toast('請先到「庫存」新增款式');
+    editId=null;fillShip({date:today(),platform:PLATS[0]});
+  },
+  editShip(id){editId=id;fillShip(ships.find(h=>h.id===id)||{})},
+  async saveShip(){
+    const p=products.find(x=>x.id===$('hProd').value);if(!p)return toast('請選擇款式');
+    const qty={};document.querySelectorAll('#hSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
+    if(!Object.keys(qty).length)return toast('請至少填一個尺寸的數量');
+    const old=editId?ships.find(h=>h.id===editId):null;
+    const short=Object.entries(qty).filter(([u,n])=>{const back=old&&old.productId===p.id?num((old.qty||{})[u]):0;return n>stockOf(p,u)+back}).map(([u])=>u);
+    if(short.length&&!confirm('尺寸 '+short.join('、')+' 庫存不足，出貨後會變成負數，確定要儲存？'))return;
+    const data={type:'ship',date:$('hDate').value||today(),platform:$('hPlat').value,productId:p.id,productName:p.name,qty,buyer:$('hBuyer').value.trim(),orderNo:$('hOrder').value.trim(),nt:num($('hNt').value),note:$('hNote').value.trim()};
+    const batch=db.batch();
+    if(old){batch.update(db.collection('kids_purchases').doc(old.id),data);moveStock(batch,old,1)}
+    else batch.set(db.collection('kids_purchases').doc(),{...data,createdAtMs:Date.now()});
+    moveStock(batch,data,-1);
+    ACT.close('m-ship');await commit(batch,'✅ 已出貨，庫存已扣除');
+  },
+  async delShip(){
+    const h=ships.find(x=>x.id===editId);if(!h||!confirm('刪除這筆出貨紀錄？庫存會加回去'))return;
+    const batch=db.batch();batch.delete(db.collection('kids_purchases').doc(h.id));moveStock(batch,h,1);
+    ACT.close('m-ship');await commit(batch,'已刪除，庫存已加回');
+  },
   // 檔口
   newStall(){editId=null;fillStall({})},
   editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
@@ -378,11 +451,12 @@ const ACT={
     await db.collection('kids_settings').doc('site').set({rate},{merge:true});toast('✅ 匯率已更新');
   },
   async recalc(){
-    if(!confirm('依「已到貨」的叫貨紀錄重新計算所有庫存？\n手動用 +／− 調整過的數量會被覆蓋。'))return;
+    if(!confirm('依「已到貨的叫貨 − 出貨紀錄」重新計算所有庫存？\n手動用 +／− 調整過的數量會被覆蓋。'))return;
     const batch=db.batch();
     products.forEach(p=>{
       const stock={};(p.units||[]).forEach(u=>stock[u]=0);
       buys.filter(b=>b.status==='arrived'&&b.productId===p.id).forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>stock[u]=num(stock[u])+num(n)));
+      ships.filter(h=>h.productId===p.id).forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>stock[u]=num(stock[u])-num(n)));
       batch.update(db.collection('kids_products').doc(p.id),{stock});
     });
     await commit(batch,'✅ 庫存已重新計算');
@@ -391,6 +465,11 @@ const ACT={
     const rows=[['款式','分類','檔口','尺寸','庫存','韓幣進價','售價NT$']];
     products.forEach(p=>(p.units||[]).forEach(u=>rows.push([p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p)])));
     csv(rows,'庫存');
+  },
+  exportShip(){
+    const rows=[['日期','平台','買家','訂單編號','款式','尺寸','數量','單價NT$','小計NT$','備註']];
+    ships.forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>rows.push([h.date,h.platform,h.buyer,h.orderNo,h.productName,u,n,num(h.nt),num(n)*num(h.nt),h.note||''])));
+    csv(rows,'出貨紀錄');
   },
   exportBuy(){
     const rows=[['日期','檔口','款式','尺寸','數量','單件韓幣','小計韓幣','狀態','備註']];
@@ -434,12 +513,30 @@ function buySizes(qty){
   const p=products.find(x=>x.id===$('bProd').value);
   $('bSizes').innerHTML=p?(p.units||[]).map(u=>`<div class="sz"><span>${esc(u)}</span><input data-u="${esc(u)}" type="number" inputmode="numeric" min="0" value="${num(qty[u])||''}" placeholder="0" style="width:56px;border:0;border-radius:0;padding:6px;text-align:center;background:#fff"></div>`).join(''):'<span class="muted">先選款式</span>';
 }
+function fillShip(h){
+  $('hTitle').textContent=editId?'編輯出貨':'新增出貨';
+  $('hDate').value=h.date||today();
+  $('hPlat').innerHTML=opts(PLATS.map(t=>[t,t]),h.platform||PLATS[0]);
+  $('hProd').innerHTML=opts(products.map(p=>[p.id,p.name]),h.productId||'','請選擇');
+  $('hBuyer').value=h.buyer||'';$('hOrder').value=h.orderNo||'';$('hNt').value=h.nt||'';$('hNote').value=h.note||'';
+  shipSizes(h.qty||{});
+  $('hDel').style.display=editId?'':'none';open('m-ship');
+}
+function shipSizes(qty){
+  const p=products.find(x=>x.id===$('hProd').value);
+  $('hSizes').innerHTML=p?(p.units||[]).map(u=>`<div class="sz"><span>${esc(u)} <small style="color:#9a8f85;font-weight:500">剩${stockOf(p,u)}</small></span><input data-u="${esc(u)}" type="number" inputmode="numeric" min="0" value="${num(qty[u])||''}" placeholder="0" style="width:52px;border:0;border-radius:0;padding:6px;text-align:center;background:#fff"></div>`).join(''):'<span class="muted">先選款式</span>';
+}
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
   $('tName').value=s.name||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tNote').value=s.note||'';
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
+$('hProd').addEventListener('change',()=>{
+  const p=products.find(x=>x.id===$('hProd').value);shipSizes({});
+  if(p&&!$('hNt').value&&pNt(p))$('hNt').value=pNt(p);
+});
+$('sq').addEventListener('input',renderShips);
 $('bProd').addEventListener('change',()=>{
   const p=products.find(x=>x.id===$('bProd').value);buySizes({});
   if(p){if(!$('bKrw').value&&pKrw(p))$('bKrw').value=pKrw(p);if(!$('bStall').value&&p.stallId)$('bStall').value=p.stallId}
