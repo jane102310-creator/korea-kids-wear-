@@ -3,350 +3,296 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>韓國童裝連線代購</title>
+<title>童裝庫存・檔口叫貨</title>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 <!--
-【Firestore 安全規則】請貼到 Firebase 控制台 → Firestore → 規則（把 ADMIN_EMAIL 換成你的管理者信箱）
+【Firestore 安全規則】貼到 Firebase 控制台 → Firestore Database → 規則，把 你的信箱 換成管理者信箱後發布：
 rules_version = '2';
 service cloud.firestore { match /databases/{d}/documents {
-  function admin(){ return request.auth != null && request.auth.token.email == 'ADMIN_EMAIL'; }
-  match /products/{id} { allow read: if true; allow write: if admin(); }
-  match /settings/{id} { allow read: if true; allow write: if admin(); }
-  match /orders/{id} {
-    allow read: if admin() || (request.auth != null && resource.data.uid == request.auth.uid);
-    allow create: if request.auth != null && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'pending';
-    allow update, delete: if admin();
-  }
-  match /userProfiles/{uid} { allow read, write: if admin() || (request.auth != null && request.auth.uid == uid); }
+  function owner(){ return request.auth != null && request.auth.token.email == '你的信箱'; }
+  match /{doc=**} { allow read, write: if owner(); }
 }}
-【Storage 規則】 allow read: if true; allow write: if request.auth.token.email == 'ADMIN_EMAIL';
-並在 Authentication 建立管理者帳號（Email/密碼），再到 Firestore 把舊的 storeData 商品搬到 products（可選）。
+【Storage 規則】 allow read: if true; allow write: if request.auth.token.email == '你的信箱';
+帳號：Firebase 控制台 → Authentication → 新增使用者（Email/密碼）。信箱只寫在規則裡，不放在網頁程式中。
 -->
 <style>
-:root{--bg:#FDFBF7;--card:#fff;--text:#5A4D41;--sub:#8C705F;--acc:#8C705F;--light:#F4EBE1;--bd:#EFECE6;--sh:0 4px 16px rgba(90,77,65,.06)}
-*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-body{background:var(--bg);color:var(--text);padding:16px 16px calc(110px + env(safe-area-inset-bottom))}
+:root{--bg:#FDFBF7;--card:#fff;--text:#5A4D41;--sub:#8C705F;--acc:#8C705F;--light:#F4EBE1;--bd:#EFECE6;--sh:0 4px 16px rgba(90,77,65,.06);--ok:#2E8B57;--warn:#D9534F;--wait:#C98A2B}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang TC","Noto Sans TC",sans-serif}
+body{background:var(--bg);color:var(--text);padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
 body.lock{overflow:hidden}
-.wrap{max-width:480px;margin:0 auto}
+.wrap{max-width:520px;margin:0 auto}
 .box{background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh);padding:14px;margin-bottom:12px}
-h1{font-size:20px;text-align:center}
-.bar{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;color:var(--sub)}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+h1{font-size:19px}
 .sec{display:none}.sec.on{display:block}
-.pills{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none}
-.pill{background:var(--card);border:1px solid var(--bd);color:var(--sub);padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
-.pill.on{background:var(--acc);color:#fff}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.item{background:var(--card);border:1px solid var(--bd);border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:var(--sh)}
-.item img{width:100%;height:160px;object-fit:cover;background:var(--light);display:block}
-.item div{padding:10px;font-size:14px;font-weight:600}
-.item small{display:block;color:var(--sub);font-weight:500;margin-top:4px}
+.pills{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.pills::-webkit-scrollbar{display:none}
+.pill{background:var(--card);border:1px solid var(--bd);color:var(--sub);padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
+.pill.on{background:var(--acc);color:#fff;border-color:var(--acc)}
 nav{position:fixed;bottom:0;left:0;width:100%;background:var(--card);border-top:1px solid var(--bd);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:0;padding:12px 0;font-size:12px;color:var(--sub);cursor:pointer;position:relative}
+nav button{flex:1;background:none;border:0;padding:10px 0;font-size:12px;color:var(--sub);cursor:pointer;line-height:1.5}
 nav button.on{color:var(--acc);font-weight:700}
-#badge{position:absolute;top:4px;right:18%;background:#D9534F;color:#fff;border-radius:10px;font-size:9px;padding:1px 5px;display:none}
 .btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
-.btn.big{width:100%;padding:14px;font-size:16px;border-radius:14px;margin-top:8px}
-.btn.red{background:#D9534F}.btn.green{background:#28A745}.btn.sm{padding:4px 10px;font-size:12px}
+.btn.big{width:100%;padding:13px;font-size:15px;border-radius:14px;margin-top:10px}
+.btn.line{background:#fff;color:var(--sub);border:1px solid var(--bd)}
+.btn.red{background:var(--warn)}.btn.green{background:var(--ok)}.btn.sm{padding:5px 10px;font-size:12px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;margin:4px 0}
+.muted{color:#9a8f85;font-size:12px}
 .mask{position:fixed;inset:0;background:rgba(90,77,65,.4);display:none;justify-content:center;align-items:flex-end;z-index:200}
 .mask.on{display:flex}
-.sheet{background:var(--card);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.sheet h2{font-size:18px;display:flex;justify-content:space-between;margin-bottom:14px}
+.sheet{background:var(--card);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
+.sheet h2{font-size:18px;display:flex;justify-content:space-between;margin-bottom:10px}
 .sheet h2 span{cursor:pointer;color:var(--sub)}
 label{display:block;font-size:13px;font-weight:600;color:var(--sub);margin:10px 0 5px}
-input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:14px;background:#FAFAFA;color:var(--text)}
-.tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
-.tabs button{flex:1;min-width:30%;border:0;background:var(--bd);color:var(--sub);padding:8px 2px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer}
-.tabs button.on{background:var(--acc);color:#fff}
-.qty{display:flex;align-items:center;gap:8px}
-.qty button{width:28px;height:28px;border:1px solid var(--bd);background:#fff;border-radius:6px;font-size:16px;cursor:pointer}
-.tag{font-size:11px;background:var(--light);color:var(--sub);padding:2px 8px;border-radius:6px}
-.price{color:#28A745;font-weight:700}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:#FAFAFA;color:var(--text)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prod{display:flex;gap:12px}
+.prod img{width:72px;height:72px;border-radius:12px;object-fit:cover;background:var(--light);flex-shrink:0}
+.prod .info{flex:1;min-width:0}
+.prod b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sizes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sz{display:flex;align-items:center;border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:13px}
+.sz span{padding:5px 8px;background:var(--light);font-weight:600}
+.sz button{width:28px;height:30px;border:0;background:#fff;font-size:16px;color:var(--sub);cursor:pointer}
+.sz b{min-width:22px;text-align:center}
+.sz.zero b{color:var(--warn)}
+.tag{display:inline-block;font-size:11px;background:var(--light);color:var(--sub);padding:2px 8px;border-radius:6px;margin-right:4px}
+.st{font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px}
+.st.ordered{background:#FDF1DE;color:var(--wait)}.st.arrived{background:#E3F3EA;color:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stats div{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:10px;text-align:center}
+.stats b{display:block;font-size:18px}.stats small{color:var(--sub);font-size:11px}
 #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#5A4D41;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:999;display:none;max-width:90%}
-.empty{text-align:center;color:#999;padding:28px}
+.empty{text-align:center;color:#999;padding:28px;font-size:14px}
+#login{max-width:360px;margin:12vh auto 0}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="box"><h1 id="title">韓國童裝連線代購</h1></div>
-  <div class="box bar"><span id="who">👤 尚未登入</span><button class="btn sm" id="authBtn" data-act="authOpen">登入 / 註冊</button></div>
 
-  <div id="s-home" class="sec on">
-    <div class="pills" id="pills"></div>
-    <div class="grid" id="list"></div>
-  </div>
-  <div id="s-cart" class="sec"><div id="cartBox"></div></div>
-  <div id="s-member" class="sec"><div id="memberBox"></div></div>
+<div id="login" class="box" style="display:none">
+  <h1 style="text-align:center;margin-bottom:6px">童裝庫存・檔口叫貨</h1>
+  <p class="muted" style="text-align:center">管理者登入</p>
+  <label>信箱</label><input id="lEmail" type="email" autocomplete="username">
+  <label>密碼</label><input id="lPwd" type="password" autocomplete="current-password">
+  <button class="btn big" data-act="login">登入</button>
 </div>
 
-<nav>
-  <button class="on" data-act="nav" data-id="home">🏠<br>首頁</button>
-  <button data-act="nav" data-id="cart">🛒<br>購物車<span id="badge">0</span></button>
-  <button data-act="nav" data-id="member">👤<br>會員專區</button>
-  <button data-act="adminOpen">🔐<br>管理者</button>
+<div class="wrap" id="app" style="display:none">
+  <header><h1 id="title">童裝庫存・檔口叫貨</h1><button class="btn line sm" data-act="logout">登出</button></header>
+
+  <!-- 庫存 -->
+  <div id="s-stock" class="sec on">
+    <div class="stats" id="stockStats"></div>
+    <input id="q" placeholder="🔍 搜尋款式名稱" style="margin-bottom:10px">
+    <div class="pills" id="stallPills"></div>
+    <button class="btn big" style="margin:0 0 12px" data-act="newProd">➕ 新增款式</button>
+    <div id="stockList"></div>
+  </div>
+
+  <!-- 叫貨紀錄 -->
+  <div id="s-buy" class="sec">
+    <div class="stats" id="buyStats"></div>
+    <div class="pills" id="buyPills"></div>
+    <button class="btn big" style="margin:0 0 12px" data-act="newBuy">📝 新增叫貨</button>
+    <div id="buyList"></div>
+  </div>
+
+  <!-- 檔口 -->
+  <div id="s-stall" class="sec">
+    <button class="btn big" style="margin:0 0 12px" data-act="newStall">🏪 新增檔口</button>
+    <div id="stallList"></div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="s-set" class="sec">
+    <div class="box">
+      <label style="margin-top:0">匯率（1 台幣 = ? 韓幣）</label><input id="sRate" type="number" step="0.1" inputmode="decimal">
+      <button class="btn big" data-act="saveSettings">儲存匯率</button>
+    </div>
+    <div class="box">
+      <b>匯出資料</b>
+      <button class="btn big line" data-act="exportStock">📦 匯出庫存 CSV</button>
+      <button class="btn big line" data-act="exportBuy">📝 匯出叫貨紀錄 CSV</button>
+    </div>
+  </div>
+</div>
+
+<nav id="nav" style="display:none">
+  <button class="on" data-act="nav" data-id="stock">📦<br>庫存</button>
+  <button data-act="nav" data-id="buy">📝<br>叫貨紀錄</button>
+  <button data-act="nav" data-id="stall">🏪<br>檔口</button>
+  <button data-act="nav" data-id="set">⚙️<br>設定</button>
 </nav>
 
-<!-- 會員登入/註冊 -->
-<div class="mask" id="m-auth"><div class="sheet">
-  <h2><b id="authTitle">會員登入</b><span data-act="close" data-id="m-auth">✕</span></h2>
-  <div id="regOnly" style="display:none"><label>全名 *</label><input id="aName"></div>
-  <label>電話號碼（登入帳號）*</label><input id="aPhone" type="tel" placeholder="0912345678">
-  <div id="regOnly2" style="display:none"><label>電子信箱 *</label><input id="aEmail" type="email"></div>
-  <label>密碼 *（至少 6 碼）</label><input id="aPwd" type="password">
-  <button class="btn big" id="authGo" data-act="authGo">登入</button>
-  <p style="text-align:center;margin-top:14px;font-size:13px"><span id="authAsk">還沒有帳號？</span> <a href="#" data-act="authToggle" id="authSwitch" style="color:var(--acc);font-weight:700">點此註冊</a></p>
-</div></div>
-
-<!-- 商品詳情 -->
+<!-- 款式 -->
 <div class="mask" id="m-prod"><div class="sheet">
-  <h2><b>選擇尺寸與數量</b><span data-act="close" data-id="m-prod">✕</span></h2>
-  <img id="dImg" style="width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:var(--light)" alt="">
-  <div style="margin:10px 0 4px"><span class="tag" id="dCat"></span></div>
-  <div id="dName" style="font-size:18px;font-weight:700"></div>
-  <div id="dNote" style="font-size:13px;color:#666;margin:6px 0"></div>
-  <div id="dSizes"></div>
-  <button class="btn big" data-act="addCart">🛒 放入購物車</button>
+  <h2><b id="pTitle">新增款式</b><span data-act="close" data-id="m-prod">✕</span></h2>
+  <label>款式名稱 *</label><input id="pName">
+  <div class="two">
+    <div><label>分類</label><select id="pCat"></select></div>
+    <div><label>常用檔口</label><select id="pStall"></select></div>
+  </div>
+  <label>尺寸（逗號隔開）</label><input id="pUnits" value="90,100,110,120,130">
+  <div class="two">
+    <div><label>韓幣進價</label><input id="pKrw" type="number" inputmode="numeric" placeholder="25000"></div>
+    <div><label>售價 NT$</label><input id="pNt" type="number" inputmode="numeric" placeholder="650"></div>
+  </div>
+  <label>圖片（≤5MB）</label><input type="file" id="pFile" accept="image/*">
+  <input id="pImg" placeholder="或貼上圖片網址" style="margin-top:6px">
+  <label>備註</label><input id="pNote">
+  <button class="btn big" data-act="saveProd">儲存</button>
+  <button class="btn big red" id="pDel" data-act="delProd">刪除此款式</button>
 </div></div>
 
-<!-- 管理者登入 -->
-<div class="mask" id="m-alogin"><div class="sheet">
-  <h2><b>管理者登入</b><span data-act="close" data-id="m-alogin">✕</span></h2>
-  <label>管理者信箱</label><input id="adEmail" type="email">
-  <label>密碼</label><input id="adPwd" type="password">
-  <button class="btn big" data-act="adminLogin">登入後台</button>
+<!-- 叫貨 -->
+<div class="mask" id="m-buy"><div class="sheet">
+  <h2><b id="bTitle">新增叫貨</b><span data-act="close" data-id="m-buy">✕</span></h2>
+  <div class="two">
+    <div><label>日期</label><input id="bDate" type="date"></div>
+    <div><label>檔口 *</label><select id="bStall"></select></div>
+  </div>
+  <label>款式 *</label><select id="bProd"></select>
+  <label>各尺寸數量</label><div class="sizes" id="bSizes"></div>
+  <label>單件韓幣</label><input id="bKrw" type="number" inputmode="numeric">
+  <label>備註</label><input id="bNote" placeholder="例如：週五到貨、顏色米白">
+  <button class="btn big" data-act="saveBuy">儲存</button>
+  <button class="btn big red" id="bDel" data-act="delBuy">刪除此紀錄</button>
 </div></div>
 
-<!-- 商品編輯 -->
-<div class="mask" id="m-edit" style="z-index:300"><div class="sheet">
-  <h2><b id="eTitle">商品資料</b><span data-act="close" data-id="m-edit">✕</span></h2>
-  <label>款式名稱 *</label><input id="eName">
-  <label>分類</label><select id="eCat"></select>
-  <label>尺寸（逗號隔開）</label><input id="eUnits" value="90,100,110,120,130">
-  <label>各尺寸韓幣買入價（依尺寸順序，逗號隔開，可留空）</label><input id="eKrw" placeholder="25000,25000,28000">
-  <label>各尺寸售價 NT$（留空則依韓幣÷匯率自動計算）</label><input id="eNt" placeholder="650,650,720">
-  <label>圖片（上傳至雲端儲存，≤5MB）</label><input type="file" id="eFile" accept="image/*">
-  <input id="eImg" placeholder="或貼上圖片網址" style="margin-top:6px">
-  <label>備註</label><input id="eNote">
-  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="eHide" style="width:20px"> 隱藏（暫不上架）</label>
-  <button class="btn big" data-act="saveProd" id="eSave">儲存</button>
-</div></div>
-
-<!-- 管理後台 -->
-<div class="mask" id="m-admin"><div class="sheet">
-  <h2><b>🔐 童裝管理後台</b><span data-act="close" data-id="m-admin">✕</span></h2>
-  <div class="tabs" id="tabs"></div>
-  <div id="adminBody"></div>
+<!-- 檔口 -->
+<div class="mask" id="m-stall"><div class="sheet">
+  <h2><b id="tTitle">新增檔口</b><span data-act="close" data-id="m-stall">✕</span></h2>
+  <label>檔口名稱 *</label><input id="tName" placeholder="例如：Nyunyu 3F 小熊屋">
+  <label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…">
+  <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
+  <label>備註</label><input id="tNote">
+  <button class="btn big" data-act="saveStall">儲存</button>
+  <button class="btn big red" id="tDel" data-act="delStall">刪除此檔口</button>
 </div></div>
 
 <div id="toast"></div>
 
 <script>
-// ===== 設定：請改成你的管理者信箱（需與安全規則一致）=====
-const ADMIN_EMAIL = "ADMIN_EMAIL";
-const CATS = ["上衣/T恤","褲子/裙裝","外套/針織","配件/鞋帽"];
-
+const CATS=["上衣/T恤","褲子/裙裝","外套/針織","配件/鞋帽","其他"];
 firebase.initializeApp({
   apiKey:"AIzaSyBHmyi3-dmv2Zcn8ULXwuIIODSWVdcDTdY",authDomain:"korea-buy-list.firebaseapp.com",
   projectId:"korea-buy-list",storageBucket:"korea-buy-list.firebasestorage.app",
   messagingSenderId:"131856493166",appId:"1:131856493166:web:1f4a1c108ffbfdb89a547f"
 });
-const db=firebase.firestore(), auth=firebase.auth(), storage=firebase.storage();
+const db=firebase.firestore(),auth=firebase.auth(),storage=firebase.storage(),FV=firebase.firestore.FieldValue;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=n=>'NT$ '+(Number(n)||0).toLocaleString();
-function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2200)}
-const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
-
-let products=[], orders=[], users=[], settings={title:'韓國童裝連線代購',rate:41.5};
-let me=null, profile=null, isAdmin=false, regMode=false, filter='全部';
-let cart=load('kids_cart',[]), modalQty={}, curPid=null, editId=null, tab='prod';
-let unsubOrders=null, unsubUsers=null;
-
-const priceOf=(p,u)=>{const i=(p.prices||{})[u]||{};const nt=parseInt(i.nt);if(nt>0)return nt;const k=parseInt(i.krw);return k>0?Math.round(k/(settings.rate||41.5)):0};
-const krwOf=(p,u)=>parseInt(((p.prices||{})[u]||{}).krw)||0;
+const num=v=>Number(v)||0;
+const nt=n=>'NT$ '+Math.round(num(n)).toLocaleString();
+const krw=n=>'₩'+num(n).toLocaleString();
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',2400)}
 const ph='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%238C705F" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
 
-// ===== 即時資料 =====
-db.collection('settings').doc('site').onSnapshot(d=>{
-  if(d.exists)settings={...settings,...d.data()};
-  $('title').textContent=settings.title;document.title=settings.title;renderAll();
-});
-db.collection('products').orderBy('createdAt','desc').onSnapshot(s=>{
-  products=s.docs.map(d=>({id:d.id,...d.data()}));if(!s.metadata.fromCache){const n=cart.length;cart=cart.filter(c=>products.some(p=>p.id===c.pid));if(cart.length!==n)toast('部分商品已下架，已從購物車移除')}renderAll();
-},e=>console.error(e));
+let products=[],stalls=[],buys=[],settings={rate:41.5};
+let stallFilter='全部',buyFilter='ordered',editId=null,unsubs=[];
 
-auth.onAuthStateChanged(async u=>{
-  me=u;profile=null;isAdmin=!!u&&u.email===ADMIN_EMAIL;
-  unsubOrders&&unsubOrders();unsubUsers&&unsubUsers();orders=[];users=[];
-  if(u&&!isAdmin){
-    const d=await db.collection('userProfiles').doc(u.uid).get();
-    profile=d.exists?d.data():{name:u.displayName||'會員',phone:u.email.split('@')[0],email:''};
-  }
-  if(u){
-    const q=isAdmin?db.collection('orders'):db.collection('orders').where('uid','==',u.uid);
-    unsubOrders=q.onSnapshot(s=>{orders=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.createdAtMs-a.createdAtMs);renderAll()},e=>console.error(e));
-    if(isAdmin)unsubUsers=db.collection('userProfiles').onSnapshot(s=>{users=s.docs.map(d=>({id:d.id,...d.data()}));renderAdmin()});
-  }
-  $('who').innerHTML=isAdmin?'🔐 管理者模式':profile?'👤 <b>'+esc(profile.name)+'</b> ('+esc(profile.phone)+')':'👤 尚未登入';
-  $('authBtn').textContent=u?'登出':'登入 / 註冊';
-  $('authBtn').dataset.act=u?'logout':'authOpen';
-  renderAll();
+// 舊版商品的價格存在 prices[尺寸]，新版用 krw / nt；兩種都讀得到
+const pKrw=p=>num(p.krw)||num(Object.values(p.prices||{}).map(x=>x&&x.krw).find(v=>num(v)));
+const pNt=p=>num(p.nt)||num(Object.values(p.prices||{}).map(x=>x&&x.nt).find(v=>num(v)));
+const stockOf=(p,u)=>num((p.stock||{})[u]);
+const stallName=id=>(stalls.find(s=>s.id===id)||{}).name||'未指定檔口';
+const sizeKey=u=>new firebase.firestore.FieldPath('stock',String(u));
+
+// ===== 登入 =====
+auth.onAuthStateChanged(u=>{
+  unsubs.forEach(f=>f());unsubs=[];
+  $('login').style.display=u?'none':'block';
+  $('app').style.display=$('nav').style.display=u?'':'none';
+  if(!u)return;
+  const err=e=>{console.error(e);if(e.code==='permission-denied')toast('這個帳號沒有權限，請確認 Firebase 規則裡的信箱')};
+  unsubs.push(
+    db.collection('products').onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
+    db.collection('stalls').onSnapshot(s=>{stalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
+    db.collection('purchases').onSnapshot(s=>{buys=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));render()},err),
+    db.collection('settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate},err)
+  );
 });
 
-// ===== 渲染 =====
-function renderAll(){renderPills();renderList();renderCart();renderMember();if($('m-admin').classList.contains('on'))renderAdmin()}
-function renderPills(){
-  $('pills').innerHTML=['全部',...CATS].map(c=>`<button class="pill ${c===filter?'on':''}" data-act="filter" data-id="${esc(c)}">${esc(c)}</button>`).join('');
+// ===== 畫面 =====
+function render(){renderStock();renderBuys();renderStalls()}
+function renderStock(){
+  const kw=$('q').value.trim().toLowerCase();
+  const total=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0),0);
+  const value=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0)*pKrw(p),0);
+  const out=products.filter(p=>(p.units||[]).some(u=>stockOf(p,u)<=0)).length;
+  $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value/(settings.rate||41.5))}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有尺寸缺貨</small></div>`;
+  $('stallPills').innerHTML=['全部',...stalls.map(s=>s.id)].map(id=>`<button class="pill ${id===stallFilter?'on':''}" data-act="stallFilter" data-id="${esc(id)}">${esc(id==='全部'?'全部檔口':stallName(id))}</button>`).join('');
+  const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||String(p.name).toLowerCase().includes(kw)));
+  $('stockList').innerHTML=list.length?list.map(p=>{
+    const sizes=(p.units||[]).map(u=>`<div class="sz ${stockOf(p,u)<=0?'zero':''}"><span>${esc(u)}</span><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="-1">−</button><b>${stockOf(p,u)}</b><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="1">+</button></div>`).join('');
+    const price=[pKrw(p)?krw(pKrw(p)):'',pNt(p)?'售 '+nt(pNt(p)):''].filter(Boolean).join(' · ');
+    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info"><b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">🏪 ${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
+  }).join(''):`<div class="empty">${products.length?'找不到符合的款式':'還沒有款式，先新增一個吧'}</div>`;
 }
-function priceRange(p){
-  const v=(p.units||[]).map(u=>priceOf(p,u)).filter(x=>x>0);
-  if(!v.length)return '';
-  const a=Math.min(...v),b=Math.max(...v);return a===b?money(a):money(a)+' 起';
+function renderBuys(){
+  const ord=buys.filter(b=>b.status!=='arrived');
+  const pcs=ord.reduce((s,b)=>s+sumQty(b),0);
+  const money=ord.reduce((s,b)=>s+sumQty(b)*num(b.krw),0);
+  $('buyStats').innerHTML=`<div><b>${ord.length}</b><small>待到貨筆數</small></div><div><b>${pcs}</b><small>待到貨件數</small></div><div><b>${krw(money)}</b><small>待到貨金額</small></div>`;
+  $('buyPills').innerHTML=[['ordered','⏳ 已叫貨'],['arrived','✅ 已到貨'],['all','全部']].map(t=>`<button class="pill ${t[0]===buyFilter?'on':''}" data-act="buyFilter" data-id="${t[0]}">${t[1]}</button>`).join('');
+  const list=buys.filter(b=>buyFilter==='all'||(buyFilter==='arrived')===(b.status==='arrived'));
+  $('buyList').innerHTML=list.length?list.map(b=>{
+    const arrived=b.status==='arrived';
+    const q=Object.entries(b.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
+    return `<div class="box"><div class="row"><b>${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
+      <div class="row muted"><span>🏪 ${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
+      <div class="row"><span>${q||'—'}</span><span>${krw(sumQty(b)*num(b.krw))}</span></div>
+      ${b.note?`<div class="muted">📝 ${esc(b.note)}</div>`:''}
+      <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">↩️ 改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">✅ 到貨入庫</button>`}</div></div>`;
+  }).join(''):'<div class="empty">沒有紀錄</div>';
 }
-function renderList(){
-  const list=products.filter(p=>!p.hidden&&(filter==='全部'||p.category===filter));
-  $('list').innerHTML=list.length?list.map(p=>`<div class="item" data-act="open" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div>${esc(p.name)}<small>${esc(p.category)}</small><small class="price">${priceRange(p)}</small></div></div>`).join(''):'<div class="empty" style="grid-column:1/3">目前沒有商品</div>';
+function renderStalls(){
+  $('stallList').innerHTML=stalls.length?stalls.map(s=>{
+    const mine=buys.filter(b=>b.stallId===s.id);
+    const pending=mine.filter(b=>b.status!=='arrived').reduce((a,b)=>a+sumQty(b),0);
+    const spent=mine.reduce((a,b)=>a+sumQty(b)*num(b.krw),0);
+    return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15px">🏪 ${esc(s.name)}</b><span class="muted">${esc(s.loc||'')}</span></div>
+      ${s.contact?`<div class="muted">📱 ${esc(s.contact)}</div>`:''}${s.note?`<div class="muted">📝 ${esc(s.note)}</div>`:''}
+      <div class="row" style="margin-top:6px"><span>款式 ${products.filter(p=>p.stallId===s.id).length}・叫貨 ${mine.length} 筆・待到 ${pending} 件</span><b>${krw(spent)}</b></div></div>`;
+  }).join(''):'<div class="empty">還沒有檔口，先新增一個吧</div>';
 }
-function cartCount(){return cart.reduce((s,c)=>s+c.count,0)}
-function saveCart(){localStorage.setItem('kids_cart',JSON.stringify(cart));const b=$('badge');b.textContent=cartCount();b.style.display=cart.length?'block':'none'}
-function renderCart(){
-  saveCart();
-  if(!cart.length){$('cartBox').innerHTML='<div class="empty">購物車是空的，去挑選童裝吧！</div>';return}
-  let total=0;
-  const rows=cart.map((c,i)=>{
-    const p=products.find(x=>x.id===c.pid);if(!p)return '';
-    const sub=priceOf(p,c.unit)*c.count;total+=sub;
-    return `<div class="box"><div class="row"><b>👕 ${esc(p.name)}</b><button class="btn red sm" data-act="rmCart" data-id="${i}">移除</button></div><div class="row"><span>尺寸 ${esc(c.unit)}</span><span class="qty"><button data-act="cartQty" data-id="${i}" data-d="-1">-</button><b>${c.count}</b><button data-act="cartQty" data-id="${i}" data-d="1">+</button></span><span class="price">${money(sub)}</span></div></div>`;
-  }).join('');
-  $('cartBox').innerHTML=rows+`<div class="row" style="font-size:16px;font-weight:700"><span>合計</span><span class="price">${money(total)}</span></div><button class="btn big" data-act="submitOrder">📦 確認送出訂單</button>`;
-}
-function orderCard(o,adm){
-  const it=(o.items||[]).map(i=>`<div class="row"><span>• ${esc(i.name)}（${esc(i.unit)}）× ${i.count}</span><span>${money(i.nt*i.count)}</span></div>`).join('');
-  const done=o.status==='done';
-  const btns=adm?`<div class="row" style="justify-content:flex-end">${done?`<button class="btn sm" data-act="restore" data-id="${o.id}">↩️ 恢復</button>`:`<button class="btn green sm" data-act="complete" data-id="${o.id}">✅ 完成</button>`}<button class="btn red sm" data-act="delOrder" data-id="${o.id}">🗑️ 刪除</button></div>`:'';
-  return `<div class="box" ${done?'style="background:var(--light)"':''}><div class="row"><b>📦 ${esc(o.id.slice(-6).toUpperCase())}${adm?' · '+esc(o.name)+'（'+esc(o.phone)+'）':''}</b><span style="color:${done?'#28A745':'#D9534F'}">${done?'已完成':'處理中'}</span></div><div style="font-size:11px;color:#999">${new Date(o.createdAtMs).toLocaleString()}</div>${it}<div class="row"><b>合計</b><b class="price">${money(o.total)}</b></div>${btns}</div>`;
-}
-function renderMember(){
-  if(!me||isAdmin){$('memberBox').innerHTML='<div class="empty">請先以會員身分登入，查看資料與訂單</div>';return}
-  const mine=orders;
-  $('memberBox').innerHTML=`<div class="box"><div class="row"><b>👤 ${esc(profile?.name)}</b><button class="btn sm" data-act="editProfile">✏️ 編輯</button></div><div class="row"><span>📱 ${esc(profile?.phone)}</span></div><div class="row"><span>✉️ ${esc(profile?.email||'未設定')}</span></div></div><b style="font-size:15px">📦 我的訂單</b><div style="margin-top:8px">${mine.length?mine.map(o=>orderCard(o,false)).join(''):'<div class="empty">目前沒有訂單</div>'}</div>`;
-}
-
-// ===== 後台 =====
-const TABS=[['prod','👕 商品'],['pend','📋 待處理'],['done','🎉 已完成'],['user','👥 會員'],['set','⚙️ 設定']];
-function renderAdmin(){
-  $('tabs').innerHTML=TABS.map(t=>`<button class="${t[0]===tab?'on':''}" data-act="tab" data-id="${t[0]}">${t[1]}</button>`).join('');
-  const b=$('adminBody');
-  if(tab==='prod'){
-    b.innerHTML=`<button class="btn big" style="margin:0 0 10px" data-act="newProd">➕ 新增款式</button>`+products.map(p=>`<div class="box"><div class="row"><b>${esc(p.name)}${p.hidden?'（已隱藏）':''}</b></div><div class="row"><span>${esc(p.category)} | [${esc((p.units||[]).join(','))}]</span><span><button class="btn sm" data-act="editProd" data-id="${p.id}">編輯</button> <button class="btn red sm" data-act="delProd" data-id="${p.id}">刪除</button></span></div></div>`).join('');
-  }else if(tab==='pend'||tab==='done'){
-    const list=orders.filter(o=>(o.status==='done')===(tab==='done'));
-    let head='';
-    if(tab==='done'){
-      let rev=0,cost=0;list.forEach(o=>(o.items||[]).forEach(i=>{rev+=i.nt*i.count;cost+=(i.krw>0?Math.round(i.krw/(i.rate||settings.rate)):0)*i.count}));
-      head=`<div class="box"><div class="row"><span>營收</span><b class="price">${money(rev)}</b></div><div class="row"><span>成本（韓幣換算）</span><b>${money(cost)}</b></div><div class="row"><span>預估毛利</span><b class="price">${money(rev-cost)}</b></div></div>`;
-    }
-    b.innerHTML=head+(list.length?list.map(o=>orderCard(o,true)).join(''):'<div class="empty">沒有訂單</div>')+(tab==='done'?'':'');
-  }else if(tab==='user'){
-    b.innerHTML=`<b>註冊會員：${users.length} 位</b>`+users.map(u=>`<div class="box"><div class="row"><b>${esc(u.name)}</b><span>${esc(u.phone)}</span></div><div class="row"><span>✉️ ${esc(u.email)}</span><span>訂單 ${orders.filter(o=>o.uid===u.id).length} 筆</span></div></div>`).join('');
-  }else{
-    b.innerHTML=`<label>網頁標題</label><input id="sTitle" value="${esc(settings.title)}"><label>預設匯率（1 台幣 = ? 韓幣）</label><input id="sRate" type="number" step="0.1" value="${settings.rate}"><button class="btn big" data-act="saveSettings">儲存設定</button><button class="btn big" style="background:#5A4D41" data-act="exportCsv">📥 匯出訂單 CSV</button>`;
-  }
-}
+const sumQty=b=>Object.values(b.qty||{}).reduce((s,n)=>s+num(n),0);
+const opts=(arr,sel,blank)=>(blank?`<option value="">${blank}</option>`:'')+arr.map(([v,t])=>`<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('');
+function open(id){$(id).classList.add('on');document.body.classList.add('lock')}
 
 // ===== 動作 =====
 const ACT={
+  async login(){
+    try{await auth.signInWithEmailAndPassword($('lEmail').value.trim(),$('lPwd').value)}
+    catch(e){toast('登入失敗：信箱或密碼錯誤')}
+  },
+  logout(){auth.signOut()},
   nav(id,_,t){
     document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='s-'+id));
-    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));t.classList.add('on');
+    document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b===t));
+    scrollTo(0,0);
   },
-  close(id){$(id).classList.remove('on');lockScroll()},
-  filter(id){filter=id;renderPills();renderList()},
-  open(id){
-    const p=products.find(x=>x.id===id);if(!p)return;curPid=id;modalQty={};
-    $('dImg').src=p.image||ph;$('dCat').textContent=p.category;$('dName').textContent=p.name;
-    $('dNote').textContent=p.note||'';$('dNote').style.display=p.note?'block':'none';
-    $('dSizes').innerHTML=(p.units||[]).map(u=>`<div class="box row" style="margin:6px 0"><span><b>尺寸 ${esc(u)}</b> <span class="price">${priceOf(p,u)?money(priceOf(p,u)):'洽詢'}</span></span><span class="qty"><button data-act="qty" data-u="${esc(u)}" data-d="-1">-</button><b id="q_${esc(u)}">0</b><button data-act="qty" data-u="${esc(u)}" data-d="1">+</button></span></div>`).join('');
-    $('m-prod').classList.add('on');
+  close(id){$(id).classList.remove('on');document.body.classList.toggle('lock',!!document.querySelector('.mask.on'))},
+  stallFilter(id){stallFilter=id;renderStock()},
+  buyFilter(id){buyFilter=id;renderBuys()},
+  async stock(id,u,t){
+    const p=products.find(x=>x.id===id);if(!p)return;
+    const d=Number(t.dataset.d);if(d<0&&stockOf(p,u)<=0)return;
+    try{await db.collection('products').doc(id).update(sizeKey(u),FV.increment(d))}catch(e){toast('更新失敗：'+e.message)}
   },
-  qty(_,u,t){
-    const n=Math.max(0,(modalQty[u]||0)+Number(t.dataset.d));
-    n?modalQty[u]=n:delete modalQty[u];
-    const el=document.getElementById('q_'+u);if(el)el.textContent=n;
-  },
-  addCart(){
-    if(!me||isAdmin){toast('請先以會員身分登入');return ACT.authOpen()}
-    const us=Object.keys(modalQty);if(!us.length)return toast('請至少選擇一個尺寸');
-    us.forEach(u=>{const ex=cart.find(c=>c.pid===curPid&&c.unit===u);ex?ex.count+=modalQty[u]:cart.push({pid:curPid,unit:u,count:modalQty[u]})});
-    renderCart();ACT.close('m-prod');toast('🛒 已放入購物車');
-  },
-  rmCart(i){cart.splice(+i,1);renderCart()},
-  cartQty(i,_,t){const c=cart[+i];if(!c)return;c.count+=Number(t.dataset.d);if(c.count<=0)cart.splice(+i,1);renderCart()},
-  async submitOrder(){
-    if(!me||isAdmin)return ACT.authOpen();
-    const items=[];let total=0;
-    for(const c of cart){const p=products.find(x=>x.id===c.pid);if(!p)continue;
-      const nt=priceOf(p,c.unit);total+=nt*c.count;
-      items.push({pid:p.id,name:p.name,unit:c.unit,count:c.count,nt,krw:krwOf(p,c.unit),rate:settings.rate})}
-    if(!items.length)return toast('購物車沒有有效商品');
-    try{
-      await db.collection('orders').add({uid:me.uid,name:profile.name,phone:profile.phone,items,total,status:'pending',createdAtMs:Date.now(),createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-      cart=[];renderCart();toast('🎉 訂單已送出！');
-      ACT.nav('member',null,document.querySelectorAll('nav button')[2]);
-    }catch(e){toast('送出失敗：'+e.message)}
-  },
-  // 會員驗證
-  authOpen(){regMode=false;authUI();$('m-auth').classList.add('on')},
-  authToggle(){regMode=!regMode;authUI()},
-  async authGo(){
-    const phone=$('aPhone').value.replace(/\D/g,''),pwd=$('aPwd').value;
-    if(!phone||!pwd)return toast('請填寫電話與密碼');
-    const mail=phone+'@koreabuy.app';
-    try{
-      if(regMode){
-        const name=$('aName').value.trim(),email=$('aEmail').value.trim();
-        if(!name||!email)return toast('請完整填寫全名與信箱');
-        const r=await auth.createUserWithEmailAndPassword(mail,pwd);
-        await db.collection('userProfiles').doc(r.user.uid).set({name,phone,email,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-        profile={name,phone,email};$('who').innerHTML='👤 <b>'+esc(name)+'</b> ('+esc(phone)+')';renderMember();
-        toast('🎉 註冊成功');
-      }else{await auth.signInWithEmailAndPassword(mail,pwd);toast('✅ 登入成功')}
-      ACT.close('m-auth');
-    }catch(e){toast(regMode?'註冊失敗：'+e.message:'登入失敗：電話或密碼錯誤')}
-  },
-  logout(){auth.signOut();toast('已登出')},
-  async editProfile(){
-    const name=prompt('全名',profile.name);if(!name)return;
-    const email=prompt('電子信箱',profile.email||'');if(!email)return;
-    await db.collection('userProfiles').doc(me.uid).set({name:name.trim(),email:email.trim()},{merge:true});
-    profile={...profile,name:name.trim(),email:email.trim()};renderMember();toast('✅ 已更新');
-  },
-  // 管理者
-  adminOpen(){
-    if(isAdmin){$('m-admin').classList.add('on');renderAdmin()}
-    else $('m-alogin').classList.add('on');
-  },
-  async adminLogin(){
-    try{
-      const r=await auth.signInWithEmailAndPassword($('adEmail').value.trim(),$('adPwd').value);
-      if(r.user.email!==ADMIN_EMAIL){await auth.signOut();return toast('此帳號不是管理者')}
-      ACT.close('m-alogin');isAdmin=true;setTimeout(()=>ACT.adminOpen(),400);
-    }catch(e){toast('登入失敗')}
-  },
-  tab(id){tab=id;renderAdmin()},
-  newProd(){editId=null;fillEdit({})},
-  editProd(id){editId=id;fillEdit(products.find(p=>p.id===id))},
+  // 款式
+  newProd(){editId=null;fillProd({stallId:stallFilter==='全部'?'':stallFilter})},
+  editProd(id){editId=id;fillProd(products.find(p=>p.id===id)||{})},
   async saveProd(){
-    const name=$('eName').value.trim();if(!name)return toast('請填寫款式名稱');
-    const units=$('eUnits').value.split(',').map(s=>s.trim()).filter(Boolean);
-    const krws=$('eKrw').value.split(','),nts=$('eNt').value.split(',');
-    const prices={};units.forEach((u,i)=>prices[u]={krw:(krws[i]||'').trim(),nt:(nts[i]||'').trim()});
-    let image=$('eImg').value.trim();
-    const f=$('eFile').files[0];
+    const name=$('pName').value.trim();if(!name)return toast('請填寫款式名稱');
+    const units=[...new Set($('pUnits').value.split(/[,，、\s]+/).map(s=>s.trim()).filter(Boolean))];
+    if(!units.length)return toast('請至少填一個尺寸');
+    let image=$('pImg').value.trim();const f=$('pFile').files[0];
     try{
       if(f){
         if(f.size>5*1024*1024)return toast('圖片不能超過 5MB');
@@ -354,60 +300,142 @@ const ACT={
         const ref=storage.ref('products/'+Date.now()+'_'+f.name.replace(/[^\w.]/g,''));
         await ref.put(f);image=await ref.getDownloadURL();
       }
-      const data={name,category:$('eCat').value,units,prices,note:$('eNote').value.trim(),image,hidden:$('eHide').checked};
+      const data={name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim()};
       if(editId)await db.collection('products').doc(editId).update(data);
-      else await db.collection('products').add({...data,createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-      ACT.close('m-edit');toast('✅ 已儲存');
+      else await db.collection('products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
+      ACT.close('m-prod');toast('✅ 已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
-  async delProd(id){if(confirm('確定刪除此款式？'))await db.collection('products').doc(id).delete()},
-  async complete(id){if(confirm('標記為已完成？'))await db.collection('orders').doc(id).update({status:'done',doneAtMs:Date.now()})},
-  async restore(id){await db.collection('orders').doc(id).update({status:'pending'})},
-  async delOrder(id){if(confirm('確定刪除此訂單？'))await db.collection('orders').doc(id).delete()},
-  async saveSettings(){
-    const rate=parseFloat($('sRate').value),title=$('sTitle').value.trim();
-    if(!(rate>0)||!title)return toast('請輸入有效標題與匯率');
-    await db.collection('settings').doc('site').set({title,rate},{merge:true});toast('✅ 設定已更新');
+  async delProd(){
+    if(!editId||!confirm('確定刪除此款式？庫存數量也會一起刪除（叫貨紀錄會保留）'))return;
+    await db.collection('products').doc(editId).delete();ACT.close('m-prod');toast('已刪除');
   },
-  exportCsv(){
-    let csv="\uFEFF訂單編號,買家,電話,狀態,款式,尺寸,數量,韓幣,匯率,售價NT$,小計\n";
-    orders.forEach(o=>(o.items||[]).forEach(i=>{csv+=[o.id.slice(-6).toUpperCase(),o.name,o.phone,o.status==='done'?'已完成':'處理中',i.name,i.unit,i.count,i.krw,i.rate,i.nt,i.nt*i.count].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+"\n"}));
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-    a.download='訂單_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  // 叫貨
+  newBuy(){
+    if(!products.length)return toast('請先到「庫存」新增款式');
+    editId=null;fillBuy({date:today(),status:'ordered'});
+  },
+  editBuy(id){editId=id;fillBuy(buys.find(b=>b.id===id)||{})},
+  async saveBuy(){
+    const p=products.find(x=>x.id===$('bProd').value);if(!p)return toast('請選擇款式');
+    const stallId=$('bStall').value;if(!stallId)return toast('請選擇檔口（可先到「檔口」新增）');
+    const qty={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
+    if(!Object.keys(qty).length)return toast('請至少填一個尺寸的數量');
+    const data={date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),note:$('bNote').value.trim()};
+    try{
+      if(editId){
+        const old=buys.find(b=>b.id===editId);
+        const batch=db.batch();batch.update(db.collection('purchases').doc(editId),data);
+        if(old&&old.status==='arrived'){moveStock(batch,old,-1);moveStock(batch,{...data},1)}
+        await batch.commit();
+      }else await db.collection('purchases').add({...data,status:'ordered',createdAtMs:Date.now()});
+      if(!p.stallId)db.collection('products').doc(p.id).update({stallId}).catch(()=>{});
+      ACT.close('m-buy');toast('✅ 已儲存');
+    }catch(e){toast('儲存失敗：'+e.message)}
+  },
+  async delBuy(){
+    const b=buys.find(x=>x.id===editId);if(!b)return;
+    const arrived=b.status==='arrived';
+    if(!confirm(arrived?'這筆已入庫，刪除時會一併扣回庫存，確定？':'確定刪除此叫貨紀錄？'))return;
+    const batch=db.batch();batch.delete(db.collection('purchases').doc(b.id));if(arrived)moveStock(batch,b,-1);
+    await batch.commit();ACT.close('m-buy');toast('已刪除');
+  },
+  async arrive(id){
+    const b=buys.find(x=>x.id===id);if(!b)return;
+    if(!products.some(p=>p.id===b.productId))return toast('這個款式已被刪除，無法入庫');
+    const batch=db.batch();batch.update(db.collection('purchases').doc(id),{status:'arrived',arrivedAtMs:Date.now()});moveStock(batch,b,1);
+    await batch.commit();toast('✅ 已入庫 '+sumQty(b)+' 件');
+  },
+  async unarrive(id){
+    const b=buys.find(x=>x.id===id);if(!b||!confirm('改回未到貨？會從庫存扣回這些數量'))return;
+    const batch=db.batch();batch.update(db.collection('purchases').doc(id),{status:'ordered'});moveStock(batch,b,-1);
+    await batch.commit();toast('已改回未到貨');
+  },
+  // 檔口
+  newStall(){editId=null;fillStall({})},
+  editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
+  async saveStall(){
+    const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
+    const data={name,loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),note:$('tNote').value.trim()};
+    try{
+      if(editId)await db.collection('stalls').doc(editId).update(data);
+      else await db.collection('stalls').add({...data,createdAtMs:Date.now()});
+      ACT.close('m-stall');toast('✅ 已儲存');
+    }catch(e){toast('儲存失敗：'+e.message)}
+  },
+  async delStall(){
+    if(!editId||!confirm('確定刪除此檔口？相關款式和紀錄會變成「未指定檔口」'))return;
+    await db.collection('stalls').doc(editId).delete();
+    if(stallFilter===editId)stallFilter='全部';
+    ACT.close('m-stall');toast('已刪除');
+  },
+  // 設定
+  async saveSettings(){
+    const rate=parseFloat($('sRate').value);if(!(rate>0))return toast('請輸入有效匯率');
+    await db.collection('settings').doc('site').set({rate},{merge:true});toast('✅ 匯率已更新');
+  },
+  exportStock(){
+    const rows=[['款式','分類','檔口','尺寸','庫存','韓幣進價','售價NT$']];
+    products.forEach(p=>(p.units||[]).forEach(u=>rows.push([p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p)])));
+    csv(rows,'庫存');
+  },
+  exportBuy(){
+    const rows=[['日期','檔口','款式','尺寸','數量','單件韓幣','小計韓幣','狀態','備註']];
+    buys.forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>rows.push([b.date,stallName(b.stallId),b.productName,u,n,num(b.krw),num(n)*num(b.krw),b.status==='arrived'?'已到貨':'已叫貨',b.note||''])));
+    csv(rows,'叫貨紀錄');
   }
 };
-function authUI(){
-  $('authTitle').textContent=regMode?'註冊新會員':'會員登入';
-  $('regOnly').style.display=$('regOnly2').style.display=regMode?'block':'none';
-  $('authGo').textContent=regMode?'確認註冊':'登入';
-  $('authAsk').textContent=regMode?'已經有帳號？':'還沒有帳號？';
-  $('authSwitch').textContent=regMode?'點此登入':'點此註冊';
+function moveStock(batch,b,sign){
+  const ref=db.collection('products').doc(b.productId);
+  if(!products.some(p=>p.id===b.productId))return;
+  const upd=[];Object.entries(b.qty||{}).forEach(([u,n])=>{if(num(n))upd.push(sizeKey(u),FV.increment(sign*num(n)))});
+  if(upd.length)batch.update(ref,...upd);
 }
-function fillEdit(p){
-  $('eCat').innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
-  $('eTitle').textContent=editId?'編輯款式':'新增款式';
-  $('eName').value=p.name||'';$('eCat').value=p.category||CATS[0];
-  const units=p.units||['90','100','110','120','130'];
-  $('eUnits').value=units.join(',');
-  $('eKrw').value=units.map(u=>((p.prices||{})[u]||{}).krw||'').join(',');
-  $('eNt').value=units.map(u=>((p.prices||{})[u]||{}).nt||'').join(',');
-  $('eImg').value=p.image||'';$('eFile').value='';$('eNote').value=p.note||'';$('eHide').checked=!!p.hidden;
-  $('m-edit').classList.add('on');
+function csv(rows,name){
+  const text='﻿'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8;'}));
+  a.download=name+'_'+today()+'.csv';a.click();
 }
-function lockScroll(){document.body.classList.toggle('lock',!!document.querySelector('.mask.on'))}
-new MutationObserver(lockScroll).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
+function fillProd(p){
+  $('pTitle').textContent=editId?'編輯款式':'新增款式';
+  $('pName').value=p.name||'';
+  $('pCat').innerHTML=opts(CATS.map(c=>[c,c]),p.category||CATS[0]);
+  $('pStall').innerHTML=opts(stalls.map(s=>[s.id,s.name]),p.stallId||'','未指定');
+  $('pUnits').value=(p.units||['90','100','110','120','130']).join(',');
+  $('pKrw').value=pKrw(p)||'';$('pNt').value=pNt(p)||'';
+  $('pImg').value=p.image||'';$('pFile').value='';$('pNote').value=p.note||'';
+  $('pDel').style.display=editId?'':'none';open('m-prod');
+}
+function fillBuy(b){
+  $('bTitle').textContent=editId?'編輯叫貨':'新增叫貨';
+  $('bDate').value=b.date||today();
+  $('bStall').innerHTML=opts(stalls.map(s=>[s.id,s.name]),b.stallId||(stallFilter!=='全部'?stallFilter:''),'請選擇');
+  $('bProd').innerHTML=opts(products.map(p=>[p.id,p.name]),b.productId||'','請選擇');
+  $('bKrw').value=b.krw||'';$('bNote').value=b.note||'';
+  buySizes(b.qty||{});
+  $('bDel').style.display=editId?'':'none';open('m-buy');
+}
+function buySizes(qty){
+  const p=products.find(x=>x.id===$('bProd').value);
+  $('bSizes').innerHTML=p?(p.units||[]).map(u=>`<div class="sz"><span>${esc(u)}</span><input data-u="${esc(u)}" type="number" inputmode="numeric" min="0" value="${num(qty[u])||''}" placeholder="0" style="width:56px;border:0;border-radius:0;padding:6px;text-align:center;background:#fff"></div>`).join(''):'<span class="muted">先選款式</span>';
+}
+function fillStall(s){
+  $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
+  $('tName').value=s.name||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tNote').value=s.note||'';
+  $('tDel').style.display=editId?'':'none';open('m-stall');
+}
+
+$('bProd').addEventListener('change',()=>{
+  const p=products.find(x=>x.id===$('bProd').value);buySizes({});
+  if(p){if(!$('bKrw').value&&pKrw(p))$('bKrw').value=pKrw(p);if(!$('bStall').value&&p.stallId)$('bStall').value=p.stallId}
+});
+$('q').addEventListener('input',renderStock);
 document.addEventListener('click',e=>{
-  if(e.target.classList.contains('mask')){e.target.classList.remove('on');lockScroll();return}
+  if(e.target.classList.contains('mask'))return ACT.close(e.target.id);
   const t=e.target.closest('[data-act]');if(!t)return;
-  if(t.tagName==='A')e.preventDefault();
   const f=ACT[t.dataset.act];if(f)f(t.dataset.id,t.dataset.u,t);
 });
-document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter'||e.isComposing)return;
-  if(['aPhone','aPwd','aName','aEmail'].includes(e.target.id))ACT.authGo();
-  else if(['adEmail','adPwd'].includes(e.target.id))ACT.adminLogin();
-});
-saveCart();
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&['lEmail','lPwd'].includes(e.target.id))ACT.login()});
 </script>
 </body>
 </html>
