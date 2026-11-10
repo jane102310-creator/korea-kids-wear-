@@ -116,6 +116,11 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
       <button class="btn big line" data-act="exportStock">📦 匯出庫存 CSV</button>
       <button class="btn big line" data-act="exportBuy">📝 匯出叫貨紀錄 CSV</button>
     </div>
+    <div class="box">
+      <b>修正庫存</b>
+      <p class="muted" style="margin-top:4px">庫存數字對不上時，依「已到貨」的叫貨紀錄重新計算（會覆蓋手動 +／− 的調整）。</p>
+      <button class="btn big line" data-act="recalc">🔄 依叫貨紀錄重算庫存</button>
+    </div>
   </div>
 </div>
 
@@ -200,7 +205,6 @@ const pKrw=p=>num(p.krw)||num(Object.values(p.prices||{}).map(x=>x&&x.krw).find(
 const pNt=p=>num(p.nt)||num(Object.values(p.prices||{}).map(x=>x&&x.nt).find(v=>num(v)));
 const stockOf=(p,u)=>num((p.stock||{})[u]);
 const stallName=id=>(stalls.find(s=>s.id===id)||{}).name||'未指定檔口';
-const sizeKey=u=>new firebase.firestore.FieldPath('stock',String(u));
 
 // ===== 登入 =====
 auth.onAuthStateChanged(u=>{
@@ -282,7 +286,7 @@ const ACT={
   async stock(id,u,t){
     const p=products.find(x=>x.id===id);if(!p)return;
     const d=Number(t.dataset.d);if(d<0&&stockOf(p,u)<=0)return;
-    try{await db.collection('kids_products').doc(id).update(sizeKey(u),FV.increment(d))}catch(e){toast('更新失敗：'+e.message)}
+    try{await db.collection('kids_products').doc(id).set({stock:{[String(u)]:FV.increment(d)}},{merge:true})}catch(e){toast('更新失敗：'+e.message)}
   },
   // 款式
   newProd(){editId=null;fillProd({stallId:stallFilter==='全部'?'':stallFilter})},
@@ -337,18 +341,18 @@ const ACT={
     const arrived=b.status==='arrived';
     if(!confirm(arrived?'這筆已入庫，刪除時會一併扣回庫存，確定？':'確定刪除此叫貨紀錄？'))return;
     const batch=db.batch();batch.delete(db.collection('kids_purchases').doc(b.id));if(arrived)moveStock(batch,b,-1);
-    await batch.commit();ACT.close('m-buy');toast('已刪除');
+    ACT.close('m-buy');await commit(batch,'已刪除');
   },
   async arrive(id){
     const b=buys.find(x=>x.id===id);if(!b)return;
     if(!products.some(p=>p.id===b.productId))return toast('這個款式已被刪除，無法入庫');
     const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'arrived',arrivedAtMs:Date.now()});moveStock(batch,b,1);
-    await batch.commit();toast('✅ 已入庫 '+sumQty(b)+' 件');
+    await commit(batch,'✅ 已入庫 '+sumQty(b)+' 件');
   },
   async unarrive(id){
     const b=buys.find(x=>x.id===id);if(!b||!confirm('改回未到貨？會從庫存扣回這些數量'))return;
     const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'ordered'});moveStock(batch,b,-1);
-    await batch.commit();toast('已改回未到貨');
+    await commit(batch,'已改回未到貨');
   },
   // 檔口
   newStall(){editId=null;fillStall({})},
@@ -373,6 +377,16 @@ const ACT={
     const rate=parseFloat($('sRate').value);if(!(rate>0))return toast('請輸入有效匯率');
     await db.collection('kids_settings').doc('site').set({rate},{merge:true});toast('✅ 匯率已更新');
   },
+  async recalc(){
+    if(!confirm('依「已到貨」的叫貨紀錄重新計算所有庫存？\n手動用 +／− 調整過的數量會被覆蓋。'))return;
+    const batch=db.batch();
+    products.forEach(p=>{
+      const stock={};(p.units||[]).forEach(u=>stock[u]=0);
+      buys.filter(b=>b.status==='arrived'&&b.productId===p.id).forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>stock[u]=num(stock[u])+num(n)));
+      batch.update(db.collection('kids_products').doc(p.id),{stock});
+    });
+    await commit(batch,'✅ 庫存已重新計算');
+  },
   exportStock(){
     const rows=[['款式','分類','檔口','尺寸','庫存','韓幣進價','售價NT$']];
     products.forEach(p=>(p.units||[]).forEach(u=>rows.push([p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p)])));
@@ -385,10 +399,12 @@ const ACT={
   }
 };
 function moveStock(batch,b,sign){
-  const ref=db.collection('kids_products').doc(b.productId);
   if(!products.some(p=>p.id===b.productId))return;
-  const upd=[];Object.entries(b.qty||{}).forEach(([u,n])=>{if(num(n))upd.push(sizeKey(u),FV.increment(sign*num(n)))});
-  if(upd.length)batch.update(ref,...upd);
+  const stock={};Object.entries(b.qty||{}).forEach(([u,n])=>{if(num(n))stock[String(u)]=FV.increment(sign*num(n))});
+  if(Object.keys(stock).length)batch.set(db.collection('kids_products').doc(b.productId),{stock},{merge:true});
+}
+async function commit(batch,msg){
+  try{await batch.commit();toast(msg)}catch(e){console.error(e);toast('更新失敗：'+e.message)}
 }
 function csv(rows,name){
   const text='﻿'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
