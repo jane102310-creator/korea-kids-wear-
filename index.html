@@ -85,7 +85,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   <!-- 庫存 -->
   <div id="s-stock" class="sec on">
     <div class="stats" id="stockStats"></div>
-    <input id="q" placeholder="🔍 搜尋款式名稱" style="margin-bottom:10px">
+    <input id="q" placeholder="🔍 搜尋編號或款式名稱" style="margin-bottom:10px">
     <div class="pills" id="stallPills"></div>
     <button class="btn big" style="margin:0 0 12px" data-act="newProd">➕ 新增款式</button>
     <div id="stockList"></div>
@@ -102,7 +102,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   <!-- 出貨紀錄 -->
   <div id="s-ship" class="sec">
     <div class="stats" id="shipStats"></div>
-    <input id="sq" placeholder="🔍 搜尋買家、款式、訂單編號" style="margin-bottom:10px">
+    <input id="sq" placeholder="🔍 搜尋買家、款式、商品編號、訂單編號" style="margin-bottom:10px">
     <div class="pills" id="shipPills"></div>
     <button class="btn big" style="margin:0 0 12px" data-act="newShip">📤 新增出貨</button>
     <div id="shipList"></div>
@@ -145,6 +145,8 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 <!-- 款式 -->
 <div class="mask" id="m-prod"><div class="sheet">
   <h2><b id="pTitle">新增款式</b><span data-act="close" data-id="m-prod">✕</span></h2>
+  <label>商品編號</label>
+  <div style="display:flex;gap:8px"><input id="pSku" placeholder="例如 NY-2611-001" style="text-transform:uppercase"><button class="btn line" type="button" data-act="genSku" style="white-space:nowrap">自動產生</button></div>
   <label>款式名稱 *</label><input id="pName">
   <div class="two">
     <div><label>分類</label><select id="pCat"></select></div>
@@ -200,7 +202,10 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 <div class="mask" id="m-stall"><div class="sheet">
   <h2><b id="tTitle">新增檔口</b><span data-act="close" data-id="m-stall">✕</span></h2>
   <label>檔口名稱 *</label><input id="tName" placeholder="例如：Nyunyu 3F 小熊屋">
-  <label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…">
+  <div class="two">
+    <div><label>編號代號 <span class="muted">（2～3 碼英文）</span></label><input id="tCode" placeholder="NY" maxlength="4" style="text-transform:uppercase"></div>
+    <div><label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…"></div>
+  </div>
   <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
   <label>備註</label><input id="tNote">
   <button class="btn big" data-act="saveStall">儲存</button>
@@ -261,12 +266,12 @@ function renderStock(){
   const out=products.filter(p=>(p.units||[]).some(u=>stockOf(p,u)<=0)).length;
   $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value/(settings.rate||41.5))}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有尺寸缺貨</small></div>`;
   $('stallPills').innerHTML=['全部',...stalls.map(s=>s.id)].map(id=>`<button class="pill ${id===stallFilter?'on':''}" data-act="stallFilter" data-id="${esc(id)}">${esc(id==='全部'?'全部檔口':stallName(id))}</button>`).join('');
-  const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||String(p.name).toLowerCase().includes(kw)));
+  const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||[p.sku,p.name].some(v=>String(v||'').toLowerCase().includes(kw))));
   $('stockList').innerHTML=list.length?list.map(p=>{
     const sizes=(p.units||[]).map(u=>`<div class="sz ${stockOf(p,u)<=0?'zero':''}"><span>${esc(u)}</span><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="-1">−</button><b>${stockOf(p,u)}</b><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="1">+</button></div>`).join('');
     const sold=ships.filter(h=>h.productId===p.id).reduce((a,h)=>a+sumQty(h),0);
     const price=[pKrw(p)?krw(pKrw(p)):'',pNt(p)?'售 '+nt(pNt(p)):'',sold?'已賣 '+sold+' 件':''].filter(Boolean).join(' · ');
-    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info"><b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">🏪 ${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
+    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info">${p.sku?`<div class="muted" style="font-weight:700;letter-spacing:.5px">${esc(p.sku)}</div>`:''}<b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">🏪 ${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
   }).join(''):`<div class="empty">${products.length?'找不到符合的款式':'還沒有款式，先新增一個吧'}</div>`;
 }
 function renderBuys(){
@@ -279,7 +284,7 @@ function renderBuys(){
   $('buyList').innerHTML=list.length?list.map(b=>{
     const arrived=b.status==='arrived';
     const q=Object.entries(b.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
-    return `<div class="box"><div class="row"><b>${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
+    return `<div class="box"><div class="row"><b>${skuOf(b.productId)?`<span class="muted">${esc(skuOf(b.productId))}</span> `:''}${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
       <div class="row muted"><span>🏪 ${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span>${krw(sumQty(b)*num(b.krw))}</span></div>
       ${b.note?`<div class="muted">📝 ${esc(b.note)}</div>`:''}
@@ -292,10 +297,10 @@ function renderShips(){
   const mon=ships.filter(h=>String(h.date).startsWith(ym));
   $('shipStats').innerHTML=`<div><b>${mon.length}</b><small>本月出貨筆數</small></div><div><b>${mon.reduce((a,h)=>a+sumQty(h),0)}</b><small>本月出貨件數</small></div><div><b>${nt(mon.reduce((a,h)=>a+sumQty(h)*num(h.nt),0))}</b><small>本月營收</small></div>`;
   $('shipPills').innerHTML=['全部',...PLATS].map(t=>`<button class="pill ${t===platFilter?'on':''}" data-act="platFilter" data-id="${esc(t)}">${esc(t)}</button>`).join('');
-  const list=ships.filter(h=>(platFilter==='全部'||h.platform===platFilter)&&(!kw||[h.buyer,h.productName,h.orderNo].some(v=>String(v||'').toLowerCase().includes(kw))));
+  const list=ships.filter(h=>(platFilter==='全部'||h.platform===platFilter)&&(!kw||[h.buyer,h.productName,h.orderNo,skuOf(h.productId)].some(v=>String(v||'').toLowerCase().includes(kw))));
   $('shipList').innerHTML=list.length?list.map(h=>{
     const q=Object.entries(h.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
-    return `<div class="box" data-act="editShip" data-id="${h.id}" style="cursor:pointer"><div class="row"><b>${esc(h.productName)}</b><span class="tag">${esc(h.platform||'其他')}</span></div>
+    return `<div class="box" data-act="editShip" data-id="${h.id}" style="cursor:pointer"><div class="row"><b>${skuOf(h.productId)?`<span class="muted">${esc(skuOf(h.productId))}</span> `:''}${esc(h.productName)}</b><span class="tag">${esc(h.platform||'其他')}</span></div>
       <div class="row muted"><span>👤 ${esc(h.buyer||'未填買家')}${h.orderNo?'・#'+esc(h.orderNo):''}</span><span>${esc(h.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span class="price" style="color:var(--ok);font-weight:700">${nt(sumQty(h)*num(h.nt))}</span></div>
       ${h.note?`<div class="muted">📝 ${esc(h.note)}</div>`:''}</div>`;
@@ -306,10 +311,18 @@ function renderStalls(){
     const mine=buys.filter(b=>b.stallId===s.id);
     const pending=mine.filter(b=>b.status!=='arrived').reduce((a,b)=>a+sumQty(b),0);
     const spent=mine.reduce((a,b)=>a+sumQty(b)*num(b.krw),0);
-    return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15px">🏪 ${esc(s.name)}</b><span class="muted">${esc(s.loc||'')}</span></div>
+    return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15px">🏪 ${esc(s.name)}${s.code?` <span class="tag">${esc(s.code)}</span>`:''}</b><span class="muted">${esc(s.loc||'')}</span></div>
       ${s.contact?`<div class="muted">📱 ${esc(s.contact)}</div>`:''}${s.note?`<div class="muted">📝 ${esc(s.note)}</div>`:''}
       <div class="row" style="margin-top:6px"><span>款式 ${products.filter(p=>p.stallId===s.id).length}・叫貨 ${mine.length} 筆・待到 ${pending} 件</span><b>${krw(spent)}</b></div></div>`;
   }).join(''):'<div class="empty">還沒有檔口，先新增一個吧</div>';
+}
+const skuOf=id=>(products.find(p=>p.id===id)||{}).sku||'';
+const label=p=>(p.sku?p.sku+'  ':'')+p.name;
+function nextSku(stallId){
+  const st=stalls.find(s=>s.id===stallId);
+  const d=today();const pre=((st&&st.code)||'XX').toUpperCase()+'-'+d.slice(2,4)+d.slice(5,7)+'-';
+  const max=products.filter(p=>p.id!==editId&&String(p.sku||'').startsWith(pre)).reduce((m,p)=>Math.max(m,parseInt(String(p.sku).slice(pre.length))||0),0);
+  return pre+String(max+1).padStart(3,'0');
 }
 const sumQty=b=>Object.values(b.qty||{}).reduce((s,n)=>s+num(n),0);
 const opts=(arr,sel,blank)=>(blank?`<option value="">${blank}</option>`:'')+arr.map(([v,t])=>`<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('');
@@ -350,7 +363,9 @@ const ACT={
         const ref=storage.ref('kids_products/'+Date.now()+'_'+f.name.replace(/[^\w.]/g,''));
         await ref.put(f);image=await ref.getDownloadURL();
       }
-      const data={name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim()};
+      const sku=$('pSku').value.trim().toUpperCase();
+      if(sku&&products.some(x=>x.id!==editId&&String(x.sku||'').toUpperCase()===sku))return toast('編號 '+sku+' 已經有其他款式使用');
+      const data={sku,name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim()};
       if(editId)await db.collection('kids_products').doc(editId).update(data);
       else await db.collection('kids_products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
       ACT.close('m-prod');toast('✅ 已儲存');
@@ -401,6 +416,7 @@ const ACT={
     const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'ordered'});moveStock(batch,b,-1);
     await commit(batch,'已改回未到貨');
   },
+  genSku(){autoSku=nextSku($('pStall').value);$('pSku').value=autoSku;if(!$('pStall').value)toast('沒選檔口，代號先用 XX，可之後再改')},
   // 出貨
   platFilter(id){platFilter=id;renderShips()},
   newShip(){
@@ -432,7 +448,7 @@ const ACT={
   editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
   async saveStall(){
     const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
-    const data={name,loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),note:$('tNote').value.trim()};
+    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),note:$('tNote').value.trim()};
     try{
       if(editId)await db.collection('kids_stalls').doc(editId).update(data);
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
@@ -462,18 +478,18 @@ const ACT={
     await commit(batch,'✅ 庫存已重新計算');
   },
   exportStock(){
-    const rows=[['款式','分類','檔口','尺寸','庫存','韓幣進價','售價NT$']];
-    products.forEach(p=>(p.units||[]).forEach(u=>rows.push([p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p)])));
+    const rows=[['編號','款式','分類','檔口','尺寸','庫存','韓幣進價','售價NT$']];
+    products.forEach(p=>(p.units||[]).forEach(u=>rows.push([p.sku||'',p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p)])));
     csv(rows,'庫存');
   },
   exportShip(){
-    const rows=[['日期','平台','買家','訂單編號','款式','尺寸','數量','單價NT$','小計NT$','備註']];
-    ships.forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>rows.push([h.date,h.platform,h.buyer,h.orderNo,h.productName,u,n,num(h.nt),num(n)*num(h.nt),h.note||''])));
+    const rows=[['日期','平台','買家','訂單編號','商品編號','款式','尺寸','數量','單價NT$','小計NT$','備註']];
+    ships.forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>rows.push([h.date,h.platform,h.buyer,h.orderNo,skuOf(h.productId),h.productName,u,n,num(h.nt),num(n)*num(h.nt),h.note||''])));
     csv(rows,'出貨紀錄');
   },
   exportBuy(){
-    const rows=[['日期','檔口','款式','尺寸','數量','單件韓幣','小計韓幣','狀態','備註']];
-    buys.forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>rows.push([b.date,stallName(b.stallId),b.productName,u,n,num(b.krw),num(n)*num(b.krw),b.status==='arrived'?'已到貨':'已叫貨',b.note||''])));
+    const rows=[['日期','檔口','商品編號','款式','尺寸','數量','單件韓幣','小計韓幣','狀態','備註']];
+    buys.forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>rows.push([b.date,stallName(b.stallId),skuOf(b.productId),b.productName,u,n,num(b.krw),num(n)*num(b.krw),b.status==='arrived'?'已到貨':'已叫貨',b.note||''])));
     csv(rows,'叫貨紀錄');
   }
 };
@@ -490,7 +506,10 @@ function csv(rows,name){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8;'}));
   a.download=name+'_'+today()+'.csv';a.click();
 }
+let autoSku='';
 function fillProd(p){
+  autoSku=editId?'':nextSku(p.stallId||'');
+  $('pSku').value=p.sku||autoSku;
   $('pTitle').textContent=editId?'編輯款式':'新增款式';
   $('pName').value=p.name||'';
   $('pCat').innerHTML=opts(CATS.map(c=>[c,c]),p.category||CATS[0]);
@@ -504,7 +523,7 @@ function fillBuy(b){
   $('bTitle').textContent=editId?'編輯叫貨':'新增叫貨';
   $('bDate').value=b.date||today();
   $('bStall').innerHTML=opts(stalls.map(s=>[s.id,s.name]),b.stallId||(stallFilter!=='全部'?stallFilter:''),'請選擇');
-  $('bProd').innerHTML=opts(products.map(p=>[p.id,p.name]),b.productId||'','請選擇');
+  $('bProd').innerHTML=opts(products.map(p=>[p.id,label(p)]),b.productId||'','請選擇');
   $('bKrw').value=b.krw||'';$('bNote').value=b.note||'';
   buySizes(b.qty||{});
   $('bDel').style.display=editId?'':'none';open('m-buy');
@@ -517,7 +536,7 @@ function fillShip(h){
   $('hTitle').textContent=editId?'編輯出貨':'新增出貨';
   $('hDate').value=h.date||today();
   $('hPlat').innerHTML=opts(PLATS.map(t=>[t,t]),h.platform||PLATS[0]);
-  $('hProd').innerHTML=opts(products.map(p=>[p.id,p.name]),h.productId||'','請選擇');
+  $('hProd').innerHTML=opts(products.map(p=>[p.id,label(p)]),h.productId||'','請選擇');
   $('hBuyer').value=h.buyer||'';$('hOrder').value=h.orderNo||'';$('hNt').value=h.nt||'';$('hNote').value=h.note||'';
   shipSizes(h.qty||{});
   $('hDel').style.display=editId?'':'none';open('m-ship');
@@ -528,10 +547,13 @@ function shipSizes(qty){
 }
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
-  $('tName').value=s.name||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tNote').value=s.note||'';
+  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tNote').value=s.note||'';
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
+$('pStall').addEventListener('change',()=>{
+  if(!editId&&$('pSku').value.trim().toUpperCase()===autoSku){autoSku=nextSku($('pStall').value);$('pSku').value=autoSku}
+});
 $('hProd').addEventListener('change',()=>{
   const p=products.find(x=>x.id===$('hProd').value);shipSizes({});
   if(p&&!$('hNt').value&&pNt(p))$('hNt').value=pNt(p);
