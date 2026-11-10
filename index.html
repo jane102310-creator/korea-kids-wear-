@@ -117,7 +117,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   <!-- 設定 -->
   <div id="s-set" class="sec">
     <div class="box">
-      <label style="margin-top:0">匯率（1 台幣 = ? 韓幣）</label><input id="sRate" type="number" step="0.1" inputmode="decimal">
+      <label style="margin-top:0">預設匯率（1 台幣 = ? 韓幣）</label><p class="muted">新增叫貨時自動帶入，每筆叫貨可再改成實際匯率。改這裡不會影響以前的成本。</p><input id="sRate" type="number" step="0.1" inputmode="decimal">
       <button class="btn big" data-act="saveSettings">儲存匯率</button>
     </div>
     <div class="box">
@@ -173,7 +173,12 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   </div>
   <label>款式 *</label><select id="bProd"></select>
   <label>各尺寸數量</label><div class="sizes" id="bSizes"></div>
-  <label>單件韓幣</label><input id="bKrw" type="number" inputmode="numeric">
+  <div class="two">
+    <div><label>單件韓幣</label><input id="bKrw" type="number" inputmode="numeric"></div>
+    <div><label>實際匯率</label><input id="bRate" type="number" step="0.01" inputmode="decimal"></div>
+  </div>
+  <label>運費／集運／關稅等（這批總共 NT$）</label><input id="bExtra" type="number" inputmode="numeric" placeholder="0">
+  <div class="box" id="bCost" style="margin:10px 0 0;background:var(--light);font-size:13px"></div>
   <label>備註</label><input id="bNote" placeholder="例如：週五到貨、顏色米白">
   <button class="btn big" data-act="saveBuy">儲存</button>
   <button class="btn big red" id="bDel" data-act="delBuy">刪除此紀錄</button>
@@ -262,15 +267,16 @@ function render(){renderStock();renderBuys();renderShips();renderStalls()}
 function renderStock(){
   const kw=$('q').value.trim().toLowerCase();
   const total=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0),0);
-  const value=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0)*pKrw(p),0);
+  const value=products.reduce((s,p)=>s+Math.max(0,(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0))*avgCost(p),0);
   const out=products.filter(p=>(p.units||[]).some(u=>stockOf(p,u)<=0)).length;
-  $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value/(settings.rate||41.5))}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有尺寸缺貨</small></div>`;
+  $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value)}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有尺寸缺貨</small></div>`;
   $('stallPills').innerHTML=['全部',...stalls.map(s=>s.id)].map(id=>`<button class="pill ${id===stallFilter?'on':''}" data-act="stallFilter" data-id="${esc(id)}">${esc(id==='全部'?'全部檔口':stallName(id))}</button>`).join('');
   const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||[p.sku,p.name].some(v=>String(v||'').toLowerCase().includes(kw))));
   $('stockList').innerHTML=list.length?list.map(p=>{
     const sizes=(p.units||[]).map(u=>`<div class="sz ${stockOf(p,u)<=0?'zero':''}"><span>${esc(u)}</span><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="-1">−</button><b>${stockOf(p,u)}</b><button data-act="stock" data-id="${p.id}" data-u="${esc(u)}" data-d="1">+</button></div>`).join('');
     const sold=ships.filter(h=>h.productId===p.id).reduce((a,h)=>a+sumQty(h),0);
-    const price=[pKrw(p)?krw(pKrw(p)):'',pNt(p)?'售 '+nt(pNt(p)):'',sold?'已賣 '+sold+' 件':''].filter(Boolean).join(' · ');
+    const ac=avgCost(p);
+    const price=[ac?'成本 '+nt(ac)+'/件':'',pNt(p)?'售 '+nt(pNt(p)):'',sold?'已賣 '+sold+' 件':''].filter(Boolean).join(' · ');
     return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info">${p.sku?`<div class="muted" style="font-weight:700;letter-spacing:.5px">${esc(p.sku)}</div>`:''}<b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">🏪 ${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
   }).join(''):`<div class="empty">${products.length?'找不到符合的款式':'還沒有款式，先新增一個吧'}</div>`;
 }
@@ -287,6 +293,7 @@ function renderBuys(){
     return `<div class="box"><div class="row"><b>${skuOf(b.productId)?`<span class="muted">${esc(skuOf(b.productId))}</span> `:''}${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
       <div class="row muted"><span>🏪 ${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span>${krw(sumQty(b)*num(b.krw))}</span></div>
+      <div class="row muted"><span>匯率 ${rateOf(b)}${num(b.extraNt)?'・運費等 '+nt(b.extraNt):''}</span><span>成本 ${nt(unitCost(b))}/件・共 ${nt(unitCost(b)*sumQty(b))}</span></div>
       ${b.note?`<div class="muted">📝 ${esc(b.note)}</div>`:''}
       <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">↩️ 改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">✅ 到貨入庫</button>`}</div></div>`;
   }).join(''):'<div class="empty">沒有紀錄</div>';
@@ -295,7 +302,7 @@ function renderShips(){
   const kw=$('sq').value.trim().toLowerCase();
   const ym=today().slice(0,7);
   const mon=ships.filter(h=>String(h.date).startsWith(ym));
-  $('shipStats').innerHTML=`<div><b>${mon.length}</b><small>本月出貨筆數</small></div><div><b>${mon.reduce((a,h)=>a+sumQty(h),0)}</b><small>本月出貨件數</small></div><div><b>${nt(mon.reduce((a,h)=>a+sumQty(h)*num(h.nt),0))}</b><small>本月營收</small></div>`;
+  $('shipStats').innerHTML=`<div><b>${mon.reduce((a,h)=>a+sumQty(h),0)}</b><small>本月出貨件數</small></div><div><b>${nt(mon.reduce((a,h)=>a+sumQty(h)*num(h.nt),0))}</b><small>本月營收</small></div><div><b style="color:var(--ok)">${nt(mon.reduce((a,h)=>a+profit(h),0))}</b><small>本月毛利</small></div>`;
   $('shipPills').innerHTML=['全部',...PLATS].map(t=>`<button class="pill ${t===platFilter?'on':''}" data-act="platFilter" data-id="${esc(t)}">${esc(t)}</button>`).join('');
   const list=ships.filter(h=>(platFilter==='全部'||h.platform===platFilter)&&(!kw||[h.buyer,h.productName,h.orderNo,skuOf(h.productId)].some(v=>String(v||'').toLowerCase().includes(kw))));
   $('shipList').innerHTML=list.length?list.map(h=>{
@@ -303,6 +310,7 @@ function renderShips(){
     return `<div class="box" data-act="editShip" data-id="${h.id}" style="cursor:pointer"><div class="row"><b>${skuOf(h.productId)?`<span class="muted">${esc(skuOf(h.productId))}</span> `:''}${esc(h.productName)}</b><span class="tag">${esc(h.platform||'其他')}</span></div>
       <div class="row muted"><span>👤 ${esc(h.buyer||'未填買家')}${h.orderNo?'・#'+esc(h.orderNo):''}</span><span>${esc(h.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span class="price" style="color:var(--ok);font-weight:700">${nt(sumQty(h)*num(h.nt))}</span></div>
+      <div class="row muted"><span>成本 ${nt(shipCost(h))}/件</span><span style="color:${profit(h)>=0?'var(--ok)':'var(--warn)'}">毛利 ${nt(profit(h))}</span></div>
       ${h.note?`<div class="muted">📝 ${esc(h.note)}</div>`:''}</div>`;
   }).join(''):'<div class="empty">沒有出貨紀錄</div>';
 }
@@ -324,6 +332,18 @@ function nextSku(stallId){
   const max=products.filter(p=>p.id!==editId&&String(p.sku||'').startsWith(pre)).reduce((m,p)=>Math.max(m,parseInt(String(p.sku).slice(pre.length))||0),0);
   return pre+String(max+1).padStart(3,'0');
 }
+const rateOf=b=>num(b.rate)||num(settings.rate)||41.5;
+const unitCost=b=>{const q=sumQty(b);return num(b.krw)/rateOf(b)+(q?num(b.extraNt)/q:0)};
+function avgCost(p){
+  const arr=buys.filter(b=>b.status==='arrived'&&b.productId===p.id);
+  const q=arr.reduce((a,b)=>a+sumQty(b),0);
+  if(q)return arr.reduce((a,b)=>a+sumQty(b)*unitCost(b),0)/q;
+  const ord=buys.filter(b=>b.productId===p.id);const oq=ord.reduce((a,b)=>a+sumQty(b),0);
+  if(oq)return ord.reduce((a,b)=>a+sumQty(b)*unitCost(b),0)/oq;
+  return pKrw(p)/(num(settings.rate)||41.5);
+}
+const shipCost=h=>h.unitCost!=null?num(h.unitCost):avgCost(products.find(p=>p.id===h.productId)||{});
+const profit=h=>sumQty(h)*(num(h.nt)-shipCost(h));
 const sumQty=b=>Object.values(b.qty||{}).reduce((s,n)=>s+num(n),0);
 const opts=(arr,sel,blank)=>(blank?`<option value="">${blank}</option>`:'')+arr.map(([v,t])=>`<option value="${esc(v)}" ${v===sel?'selected':''}>${esc(t)}</option>`).join('');
 function open(id){$(id).classList.add('on');document.body.classList.add('lock')}
@@ -386,7 +406,7 @@ const ACT={
     const stallId=$('bStall').value;if(!stallId)return toast('請選擇檔口（可先到「檔口」新增）');
     const qty={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
     if(!Object.keys(qty).length)return toast('請至少填一個尺寸的數量');
-    const data={date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),note:$('bNote').value.trim()};
+    const data={date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),rate:num($('bRate').value)||num(settings.rate)||41.5,extraNt:num($('bExtra').value),note:$('bNote').value.trim()};
     try{
       if(editId){
         const old=buys.find(b=>b.id===editId);
@@ -431,7 +451,7 @@ const ACT={
     const old=editId?ships.find(h=>h.id===editId):null;
     const short=Object.entries(qty).filter(([u,n])=>{const back=old&&old.productId===p.id?num((old.qty||{})[u]):0;return n>stockOf(p,u)+back}).map(([u])=>u);
     if(short.length&&!confirm('尺寸 '+short.join('、')+' 庫存不足，出貨後會變成負數，確定要儲存？'))return;
-    const data={type:'ship',date:$('hDate').value||today(),platform:$('hPlat').value,productId:p.id,productName:p.name,qty,buyer:$('hBuyer').value.trim(),orderNo:$('hOrder').value.trim(),nt:num($('hNt').value),note:$('hNote').value.trim()};
+    const data={type:'ship',date:$('hDate').value||today(),platform:$('hPlat').value,productId:p.id,productName:p.name,qty,buyer:$('hBuyer').value.trim(),orderNo:$('hOrder').value.trim(),nt:num($('hNt').value),unitCost:Math.round(avgCost(p)*100)/100,note:$('hNote').value.trim()};
     const batch=db.batch();
     if(old){batch.update(db.collection('kids_purchases').doc(old.id),data);moveStock(batch,old,1)}
     else batch.set(db.collection('kids_purchases').doc(),{...data,createdAtMs:Date.now()});
@@ -483,13 +503,13 @@ const ACT={
     csv(rows,'庫存');
   },
   exportShip(){
-    const rows=[['日期','平台','買家','訂單編號','商品編號','款式','尺寸','數量','單價NT$','小計NT$','備註']];
-    ships.forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>rows.push([h.date,h.platform,h.buyer,h.orderNo,skuOf(h.productId),h.productName,u,n,num(h.nt),num(n)*num(h.nt),h.note||''])));
+    const rows=[['日期','平台','買家','訂單編號','商品編號','款式','尺寸','數量','單價NT$','小計NT$','單件成本NT$','毛利NT$','備註']];
+    ships.forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>rows.push([h.date,h.platform,h.buyer,h.orderNo,skuOf(h.productId),h.productName,u,n,num(h.nt),num(n)*num(h.nt),Math.round(shipCost(h)),Math.round(num(n)*(num(h.nt)-shipCost(h))),h.note||''])));
     csv(rows,'出貨紀錄');
   },
   exportBuy(){
-    const rows=[['日期','檔口','商品編號','款式','尺寸','數量','單件韓幣','小計韓幣','狀態','備註']];
-    buys.forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>rows.push([b.date,stallName(b.stallId),skuOf(b.productId),b.productName,u,n,num(b.krw),num(n)*num(b.krw),b.status==='arrived'?'已到貨':'已叫貨',b.note||''])));
+    const rows=[['日期','檔口','商品編號','款式','尺寸','數量','單件韓幣','小計韓幣','匯率','運費等NT$(整批)','單件台幣成本','狀態','備註']];
+    buys.forEach(b=>Object.entries(b.qty||{}).forEach(([u,n])=>rows.push([b.date,stallName(b.stallId),skuOf(b.productId),b.productName,u,n,num(b.krw),num(n)*num(b.krw),rateOf(b),num(b.extraNt),Math.round(unitCost(b)),b.status==='arrived'?'已到貨':'已叫貨',b.note||''])));
     csv(rows,'叫貨紀錄');
   }
 };
@@ -524,8 +544,8 @@ function fillBuy(b){
   $('bDate').value=b.date||today();
   $('bStall').innerHTML=opts(stalls.map(s=>[s.id,s.name]),b.stallId||(stallFilter!=='全部'?stallFilter:''),'請選擇');
   $('bProd').innerHTML=opts(products.map(p=>[p.id,label(p)]),b.productId||'','請選擇');
-  $('bKrw').value=b.krw||'';$('bNote').value=b.note||'';
-  buySizes(b.qty||{});
+  $('bKrw').value=b.krw||'';$('bRate').value=num(b.rate)||settings.rate;$('bExtra').value=b.extraNt||'';$('bNote').value=b.note||'';
+  buySizes(b.qty||{});buyPreview();
   $('bDel').style.display=editId?'':'none';open('m-buy');
 }
 function buySizes(qty){
@@ -559,6 +579,12 @@ $('hProd').addEventListener('change',()=>{
   if(p&&!$('hNt').value&&pNt(p))$('hNt').value=pNt(p);
 });
 $('sq').addEventListener('input',renderShips);
+function buyPreview(){
+  const qty={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
+  const b={qty,krw:$('bKrw').value,rate:$('bRate').value,extraNt:$('bExtra').value};const q=sumQty(b);
+  $('bCost').innerHTML=q?`共 <b>${q}</b> 件・每件台幣成本 <b>${nt(unitCost(b))}</b>・這批總成本 <b>${nt(unitCost(b)*q)}</b>`:'填好數量後，這裡會算出每件台幣成本';
+}
+$('m-buy').addEventListener('input',buyPreview);
 $('bProd').addEventListener('change',()=>{
   const p=products.find(x=>x.id===$('bProd').value);buySizes({});
   if(p){if(!$('bKrw').value&&pKrw(p))$('bKrw').value=pKrw(p);if(!$('bStall').value&&p.stallId)$('bStall').value=p.stallId}
