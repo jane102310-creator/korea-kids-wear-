@@ -9,13 +9,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 <!--
-【Firestore 安全規則】貼到 Firebase 控制台 → Firestore Database → 規則，把 你的信箱 換成管理者信箱後發布：
-rules_version = '2';
-service cloud.firestore { match /databases/{d}/documents {
-  function owner(){ return request.auth != null && request.auth.token.email == '你的信箱'; }
-  match /{doc=**} { allow read, write: if owner(); }
-}}
-【Storage 規則】 allow read: if true; allow write: if request.auth.token.email == '你的信箱';
+【Firestore 安全規則】這個 Firebase 專案和「韓國代購清單」共用，所以本網頁的資料都放在 kids_ 開頭的集合。
+請在 Firebase 控制台 → Firestore Database → 規則 裡，保留原本的規則，在 match /databases/{database}/documents { 裡面加上這段（把 你的信箱 換成管理者信箱）：
+    match /kids_products/{id}  { allow read, write: if request.auth != null && request.auth.token.email == '你的信箱'; }
+    match /kids_stalls/{id}    { allow read, write: if request.auth != null && request.auth.token.email == '你的信箱'; }
+    match /kids_purchases/{id} { allow read, write: if request.auth != null && request.auth.token.email == '你的信箱'; }
+    match /kids_settings/{id}  { allow read, write: if request.auth != null && request.auth.token.email == '你的信箱'; }
 帳號：Firebase 控制台 → Authentication → 新增使用者（Email/密碼）。信箱只寫在規則裡，不放在網頁程式中。
 -->
 <style>
@@ -211,10 +210,10 @@ auth.onAuthStateChanged(u=>{
   if(!u)return;
   const err=e=>{console.error(e);if(e.code==='permission-denied')toast('這個帳號沒有權限，請確認 Firebase 規則裡的信箱')};
   unsubs.push(
-    db.collection('products').onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
-    db.collection('stalls').onSnapshot(s=>{stalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
-    db.collection('purchases').onSnapshot(s=>{buys=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));render()},err),
-    db.collection('settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate},err)
+    db.collection('kids_products').onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
+    db.collection('kids_stalls').onSnapshot(s=>{stalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
+    db.collection('kids_purchases').onSnapshot(s=>{buys=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));render()},err),
+    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate},err)
   );
 });
 
@@ -283,7 +282,7 @@ const ACT={
   async stock(id,u,t){
     const p=products.find(x=>x.id===id);if(!p)return;
     const d=Number(t.dataset.d);if(d<0&&stockOf(p,u)<=0)return;
-    try{await db.collection('products').doc(id).update(sizeKey(u),FV.increment(d))}catch(e){toast('更新失敗：'+e.message)}
+    try{await db.collection('kids_products').doc(id).update(sizeKey(u),FV.increment(d))}catch(e){toast('更新失敗：'+e.message)}
   },
   // 款式
   newProd(){editId=null;fillProd({stallId:stallFilter==='全部'?'':stallFilter})},
@@ -297,18 +296,18 @@ const ACT={
       if(f){
         if(f.size>5*1024*1024)return toast('圖片不能超過 5MB');
         toast('圖片上傳中…');
-        const ref=storage.ref('products/'+Date.now()+'_'+f.name.replace(/[^\w.]/g,''));
+        const ref=storage.ref('kids_products/'+Date.now()+'_'+f.name.replace(/[^\w.]/g,''));
         await ref.put(f);image=await ref.getDownloadURL();
       }
       const data={name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim()};
-      if(editId)await db.collection('products').doc(editId).update(data);
-      else await db.collection('products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
+      if(editId)await db.collection('kids_products').doc(editId).update(data);
+      else await db.collection('kids_products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
       ACT.close('m-prod');toast('✅ 已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
   async delProd(){
     if(!editId||!confirm('確定刪除此款式？庫存數量也會一起刪除（叫貨紀錄會保留）'))return;
-    await db.collection('products').doc(editId).delete();ACT.close('m-prod');toast('已刪除');
+    await db.collection('kids_products').doc(editId).delete();ACT.close('m-prod');toast('已刪除');
   },
   // 叫貨
   newBuy(){
@@ -325,11 +324,11 @@ const ACT={
     try{
       if(editId){
         const old=buys.find(b=>b.id===editId);
-        const batch=db.batch();batch.update(db.collection('purchases').doc(editId),data);
+        const batch=db.batch();batch.update(db.collection('kids_purchases').doc(editId),data);
         if(old&&old.status==='arrived'){moveStock(batch,old,-1);moveStock(batch,{...data},1)}
         await batch.commit();
-      }else await db.collection('purchases').add({...data,status:'ordered',createdAtMs:Date.now()});
-      if(!p.stallId)db.collection('products').doc(p.id).update({stallId}).catch(()=>{});
+      }else await db.collection('kids_purchases').add({...data,status:'ordered',createdAtMs:Date.now()});
+      if(!p.stallId)db.collection('kids_products').doc(p.id).update({stallId}).catch(()=>{});
       ACT.close('m-buy');toast('✅ 已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
@@ -337,18 +336,18 @@ const ACT={
     const b=buys.find(x=>x.id===editId);if(!b)return;
     const arrived=b.status==='arrived';
     if(!confirm(arrived?'這筆已入庫，刪除時會一併扣回庫存，確定？':'確定刪除此叫貨紀錄？'))return;
-    const batch=db.batch();batch.delete(db.collection('purchases').doc(b.id));if(arrived)moveStock(batch,b,-1);
+    const batch=db.batch();batch.delete(db.collection('kids_purchases').doc(b.id));if(arrived)moveStock(batch,b,-1);
     await batch.commit();ACT.close('m-buy');toast('已刪除');
   },
   async arrive(id){
     const b=buys.find(x=>x.id===id);if(!b)return;
     if(!products.some(p=>p.id===b.productId))return toast('這個款式已被刪除，無法入庫');
-    const batch=db.batch();batch.update(db.collection('purchases').doc(id),{status:'arrived',arrivedAtMs:Date.now()});moveStock(batch,b,1);
+    const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'arrived',arrivedAtMs:Date.now()});moveStock(batch,b,1);
     await batch.commit();toast('✅ 已入庫 '+sumQty(b)+' 件');
   },
   async unarrive(id){
     const b=buys.find(x=>x.id===id);if(!b||!confirm('改回未到貨？會從庫存扣回這些數量'))return;
-    const batch=db.batch();batch.update(db.collection('purchases').doc(id),{status:'ordered'});moveStock(batch,b,-1);
+    const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'ordered'});moveStock(batch,b,-1);
     await batch.commit();toast('已改回未到貨');
   },
   // 檔口
@@ -358,21 +357,21 @@ const ACT={
     const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
     const data={name,loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),note:$('tNote').value.trim()};
     try{
-      if(editId)await db.collection('stalls').doc(editId).update(data);
-      else await db.collection('stalls').add({...data,createdAtMs:Date.now()});
+      if(editId)await db.collection('kids_stalls').doc(editId).update(data);
+      else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
       ACT.close('m-stall');toast('✅ 已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
   async delStall(){
     if(!editId||!confirm('確定刪除此檔口？相關款式和紀錄會變成「未指定檔口」'))return;
-    await db.collection('stalls').doc(editId).delete();
+    await db.collection('kids_stalls').doc(editId).delete();
     if(stallFilter===editId)stallFilter='全部';
     ACT.close('m-stall');toast('已刪除');
   },
   // 設定
   async saveSettings(){
     const rate=parseFloat($('sRate').value);if(!(rate>0))return toast('請輸入有效匯率');
-    await db.collection('settings').doc('site').set({rate},{merge:true});toast('✅ 匯率已更新');
+    await db.collection('kids_settings').doc('site').set({rate},{merge:true});toast('✅ 匯率已更新');
   },
   exportStock(){
     const rows=[['款式','分類','檔口','尺寸','庫存','韓幣進價','售價NT$']];
@@ -386,7 +385,7 @@ const ACT={
   }
 };
 function moveStock(batch,b,sign){
-  const ref=db.collection('products').doc(b.productId);
+  const ref=db.collection('kids_products').doc(b.productId);
   if(!products.some(p=>p.id===b.productId))return;
   const upd=[];Object.entries(b.qty||{}).forEach(([u,n])=>{if(num(n))upd.push(sizeKey(u),FV.increment(sign*num(n)))});
   if(upd.length)batch.update(ref,...upd);
