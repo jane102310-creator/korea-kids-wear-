@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>韓國童裝連線代購</title>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -28,7 +28,8 @@ service cloud.firestore { match /databases/{d}/documents {
 <style>
 :root{--bg:#FDFBF7;--card:#fff;--text:#5A4D41;--sub:#8C705F;--acc:#8C705F;--light:#F4EBE1;--bd:#EFECE6;--sh:0 4px 16px rgba(90,77,65,.06)}
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-body{background:var(--bg);color:var(--text);padding:16px 16px 110px}
+body{background:var(--bg);color:var(--text);padding:16px 16px calc(110px + env(safe-area-inset-bottom))}
+body.lock{overflow:hidden}
 .wrap{max-width:480px;margin:0 auto}
 .box{background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh);padding:14px;margin-bottom:12px}
 h1{font-size:20px;text-align:center}
@@ -42,7 +43,7 @@ h1{font-size:20px;text-align:center}
 .item img{width:100%;height:160px;object-fit:cover;background:var(--light);display:block}
 .item div{padding:10px;font-size:14px;font-weight:600}
 .item small{display:block;color:var(--sub);font-weight:500;margin-top:4px}
-nav{position:fixed;bottom:0;left:0;width:100%;background:var(--card);border-top:1px solid var(--bd);display:flex;z-index:50}
+nav{position:fixed;bottom:0;left:0;width:100%;background:var(--card);border-top:1px solid var(--bd);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;background:none;border:0;padding:12px 0;font-size:12px;color:var(--sub);cursor:pointer;position:relative}
 nav button.on{color:var(--acc);font-weight:700}
 #badge{position:absolute;top:4px;right:18%;background:#D9534F;color:#fff;border-radius:10px;font-size:9px;padding:1px 5px;display:none}
@@ -52,7 +53,7 @@ nav button.on{color:var(--acc);font-weight:700}
 .row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;margin:4px 0}
 .mask{position:fixed;inset:0;background:rgba(90,77,65,.4);display:none;justify-content:center;align-items:flex-end;z-index:200}
 .mask.on{display:flex}
-.sheet{background:var(--card);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:22px;max-height:90vh;overflow-y:auto}
+.sheet{background:var(--card);width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sheet h2{font-size:18px;display:flex;justify-content:space-between;margin-bottom:14px}
 .sheet h2 span{cursor:pointer;color:var(--sub)}
 label{display:block;font-size:13px;font-weight:600;color:var(--sub);margin:10px 0 5px}
@@ -175,7 +176,7 @@ db.collection('settings').doc('site').onSnapshot(d=>{
   $('title').textContent=settings.title;document.title=settings.title;renderAll();
 });
 db.collection('products').orderBy('createdAt','desc').onSnapshot(s=>{
-  products=s.docs.map(d=>({id:d.id,...d.data()}));renderAll();
+  products=s.docs.map(d=>({id:d.id,...d.data()}));if(!s.metadata.fromCache){const n=cart.length;cart=cart.filter(c=>products.some(p=>p.id===c.pid));if(cart.length!==n)toast('部分商品已下架，已從購物車移除')}renderAll();
 },e=>console.error(e));
 
 auth.onAuthStateChanged(async u=>{
@@ -219,12 +220,12 @@ function renderCart(){
   const rows=cart.map((c,i)=>{
     const p=products.find(x=>x.id===c.pid);if(!p)return '';
     const sub=priceOf(p,c.unit)*c.count;total+=sub;
-    return `<div class="box"><div class="row"><b>👕 ${esc(p.name)}</b><button class="btn red sm" data-act="rmCart" data-id="${i}">移除</button></div><div class="row"><span>尺寸 ${esc(c.unit)} × ${c.count} 件</span><span class="price">${money(sub)}</span></div></div>`;
+    return `<div class="box"><div class="row"><b>👕 ${esc(p.name)}</b><button class="btn red sm" data-act="rmCart" data-id="${i}">移除</button></div><div class="row"><span>尺寸 ${esc(c.unit)}</span><span class="qty"><button data-act="cartQty" data-id="${i}" data-d="-1">-</button><b>${c.count}</b><button data-act="cartQty" data-id="${i}" data-d="1">+</button></span><span class="price">${money(sub)}</span></div></div>`;
   }).join('');
   $('cartBox').innerHTML=rows+`<div class="row" style="font-size:16px;font-weight:700"><span>合計</span><span class="price">${money(total)}</span></div><button class="btn big" data-act="submitOrder">📦 確認送出訂單</button>`;
 }
 function orderCard(o,adm){
-  const it=o.items.map(i=>`<div class="row"><span>• ${esc(i.name)}（${esc(i.unit)}）× ${i.count}</span><span>${money(i.nt*i.count)}</span></div>`).join('');
+  const it=(o.items||[]).map(i=>`<div class="row"><span>• ${esc(i.name)}（${esc(i.unit)}）× ${i.count}</span><span>${money(i.nt*i.count)}</span></div>`).join('');
   const done=o.status==='done';
   const btns=adm?`<div class="row" style="justify-content:flex-end">${done?`<button class="btn sm" data-act="restore" data-id="${o.id}">↩️ 恢復</button>`:`<button class="btn green sm" data-act="complete" data-id="${o.id}">✅ 完成</button>`}<button class="btn red sm" data-act="delOrder" data-id="${o.id}">🗑️ 刪除</button></div>`:'';
   return `<div class="box" ${done?'style="background:var(--light)"':''}><div class="row"><b>📦 ${esc(o.id.slice(-6).toUpperCase())}${adm?' · '+esc(o.name)+'（'+esc(o.phone)+'）':''}</b><span style="color:${done?'#28A745':'#D9534F'}">${done?'已完成':'處理中'}</span></div><div style="font-size:11px;color:#999">${new Date(o.createdAtMs).toLocaleString()}</div>${it}<div class="row"><b>合計</b><b class="price">${money(o.total)}</b></div>${btns}</div>`;
@@ -246,7 +247,7 @@ function renderAdmin(){
     const list=orders.filter(o=>(o.status==='done')===(tab==='done'));
     let head='';
     if(tab==='done'){
-      let rev=0,cost=0;list.forEach(o=>o.items.forEach(i=>{rev+=i.nt*i.count;cost+=(i.krw>0?Math.round(i.krw/(i.rate||settings.rate)):0)*i.count}));
+      let rev=0,cost=0;list.forEach(o=>(o.items||[]).forEach(i=>{rev+=i.nt*i.count;cost+=(i.krw>0?Math.round(i.krw/(i.rate||settings.rate)):0)*i.count}));
       head=`<div class="box"><div class="row"><span>營收</span><b class="price">${money(rev)}</b></div><div class="row"><span>成本（韓幣換算）</span><b>${money(cost)}</b></div><div class="row"><span>預估毛利</span><b class="price">${money(rev-cost)}</b></div></div>`;
     }
     b.innerHTML=head+(list.length?list.map(o=>orderCard(o,true)).join(''):'<div class="empty">沒有訂單</div>')+(tab==='done'?'':'');
@@ -263,7 +264,7 @@ const ACT={
     document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='s-'+id));
     document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));t.classList.add('on');
   },
-  close(id){$(id).classList.remove('on')},
+  close(id){$(id).classList.remove('on');lockScroll()},
   filter(id){filter=id;renderPills();renderList()},
   open(id){
     const p=products.find(x=>x.id===id);if(!p)return;curPid=id;modalQty={};
@@ -284,6 +285,7 @@ const ACT={
     renderCart();ACT.close('m-prod');toast('🛒 已放入購物車');
   },
   rmCart(i){cart.splice(+i,1);renderCart()},
+  cartQty(i,_,t){const c=cart[+i];if(!c)return;c.count+=Number(t.dataset.d);if(c.count<=0)cart.splice(+i,1);renderCart()},
   async submitOrder(){
     if(!me||isAdmin)return ACT.authOpen();
     const items=[];let total=0;
@@ -369,7 +371,7 @@ const ACT={
   },
   exportCsv(){
     let csv="\uFEFF訂單編號,買家,電話,狀態,款式,尺寸,數量,韓幣,匯率,售價NT$,小計\n";
-    orders.forEach(o=>o.items.forEach(i=>{csv+=[o.id.slice(-6).toUpperCase(),o.name,o.phone,o.status==='done'?'已完成':'處理中',i.name,i.unit,i.count,i.krw,i.rate,i.nt,i.nt*i.count].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+"\n"}));
+    orders.forEach(o=>(o.items||[]).forEach(i=>{csv+=[o.id.slice(-6).toUpperCase(),o.name,o.phone,o.status==='done'?'已完成':'處理中',i.name,i.unit,i.count,i.krw,i.rate,i.nt,i.nt*i.count].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')+"\n"}));
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
     a.download='訂單_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
   }
@@ -392,10 +394,18 @@ function fillEdit(p){
   $('eImg').value=p.image||'';$('eFile').value='';$('eNote').value=p.note||'';$('eHide').checked=!!p.hidden;
   $('m-edit').classList.add('on');
 }
+function lockScroll(){document.body.classList.toggle('lock',!!document.querySelector('.mask.on'))}
+new MutationObserver(lockScroll).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
 document.addEventListener('click',e=>{
+  if(e.target.classList.contains('mask')){e.target.classList.remove('on');lockScroll();return}
   const t=e.target.closest('[data-act]');if(!t)return;
   if(t.tagName==='A')e.preventDefault();
   const f=ACT[t.dataset.act];if(f)f(t.dataset.id,t.dataset.u,t);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'||e.isComposing)return;
+  if(['aPhone','aPwd','aName','aEmail'].includes(e.target.id))ACT.authGo();
+  else if(['adEmail','adPwd'].includes(e.target.id))ACT.adminLogin();
 });
 saveCart();
 </script>
