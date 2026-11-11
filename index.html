@@ -66,6 +66,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 .stats b{display:block;font-size:18px}.stats small{color:var(--sub);font-size:11px}
 #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#5A4D41;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:999;display:none;max-width:90%}
 .empty{text-align:center;color:#999;padding:28px;font-size:14px}
+.look{display:inline-block;font-size:12px;font-weight:600;color:var(--acc);background:var(--light);padding:4px 10px;border-radius:8px;text-decoration:none}
 #login{max-width:360px;margin:12vh auto 0}
 </style>
 </head>
@@ -214,6 +215,12 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
     <div><label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…"></div>
   </div>
   <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
+  <label>看圖管道 <span class="muted">（填 ID 或貼網址）</span></label>
+  <div class="two">
+    <div><input id="tStory" placeholder="KakaoStory ID"></div>
+    <div><input id="tIg" placeholder="IG 帳號"></div>
+  </div>
+  <input id="tWeb" placeholder="官網或其他看圖網址" style="margin-top:8px">
   <label>備註</label><input id="tNote">
   <button class="btn big" data-act="saveStall">儲存</button>
   <button class="btn big red" id="tDel" data-act="delStall">刪除此檔口</button>
@@ -328,9 +335,18 @@ function renderStalls(){
     const pending=mine.filter(b=>b.status!=='arrived').reduce((a,b)=>a+sumQty(b),0);
     const spent=mine.reduce((a,b)=>a+sumQty(b)*num(b.krw),0);
     return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15px">🏪 ${esc(s.name)}${s.code?` <span class="tag">${esc(s.code)}</span>`:''}</b><span class="muted">${esc(s.loc||'')}</span></div>
-      ${s.contact?`<div class="muted">📱 ${esc(s.contact)}</div>`:''}${s.note?`<div class="muted">📝 ${esc(s.note)}</div>`:''}
+      ${s.contact?`<div class="muted">📱 ${esc(s.contact)}</div>`:''}${lookLinks(s)}${s.note?`<div class="muted">📝 ${esc(s.note)}</div>`:''}
       <div class="row" style="margin-top:6px"><span>款式 ${products.filter(p=>p.stallId===s.id).length}・叫貨 ${mine.length} 筆・待到 ${pending} 件</span><b>${krw(spent)}</b></div></div>`;
   }).join(''):'<div class="empty">還沒有檔口，先新增一個吧</div>';
+}
+// 看圖管道：KakaoStory／IG／網站，ID 或網址都可以
+const toUrl=(v,base)=>/^https?:\/\//i.test(v)?v:base+encodeURIComponent(v);
+function lookLinks(s){
+  const a=[];
+  if(s.story)a.push(`<a class="look" href="${esc(toUrl(s.story,'https://story.kakao.com/'))}" target="_blank" rel="noopener">📖 KakaoStory</a>`);
+  if(s.ig)a.push(`<a class="look" href="${esc(toUrl(s.ig,'https://www.instagram.com/'))}" target="_blank" rel="noopener">📷 IG</a>`);
+  if(s.web)a.push(`<a class="look" href="${esc(/^https?:\/\//i.test(s.web)?s.web:'https://'+s.web)}" target="_blank" rel="noopener">🔗 網站</a>`);
+  return a.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">${a.join('')}</div>`:'';
 }
 const skuOf=id=>(products.find(p=>p.id===id)||{}).sku||'';
 const label=p=>(p.sku?p.sku+'  ':'')+p.name;
@@ -480,7 +496,7 @@ const ACT={
   editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
   async saveStall(){
     const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
-    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),note:$('tNote').value.trim()};
+    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
     try{
       if(editId)await db.collection('kids_stalls').doc(editId).update(data);
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
@@ -585,7 +601,7 @@ function shipSizes(qty){
 }
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
-  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tNote').value=s.note||'';
+  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
@@ -617,6 +633,7 @@ $('bProd').addEventListener('change',()=>{
 });
 $('q').addEventListener('input',renderStock);
 document.addEventListener('click',e=>{
+  if(e.target.closest('a'))return;
   if(e.target.classList.contains('mask'))return ACT.close(e.target.id);
   const t=e.target.closest('[data-act]');if(!t)return;
   const f=ACT[t.dataset.act];if(f)f(t.dataset.id,t.dataset.u,t);
