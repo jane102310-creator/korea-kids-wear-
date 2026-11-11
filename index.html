@@ -66,6 +66,11 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 .stats b{display:block;font-size:18px}.stats small{color:var(--sub);font-size:11px}
 #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#5A4D41;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:999;display:none;max-width:90%}
 .empty{text-align:center;color:#999;padding:28px;font-size:14px}
+.agechk{display:flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--sub);background:#FAFAFA;cursor:pointer;margin:0}
+.agechk input{width:auto;margin:0}
+.agechk:has(input:checked){background:var(--acc);color:#fff;border-color:var(--acc)}
+.age{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:4px;background:#FDF1DE;color:var(--wait)}
+.age.big{background:#E6EEF6;color:#4A6A8A}.age.acc{background:#EEE;color:#777}
 .look{display:inline-block;font-size:12px;font-weight:600;color:var(--acc);background:var(--light);padding:4px 10px;border-radius:8px;text-decoration:none}
 #login{max-width:360px;margin:12vh auto 0}
 </style>
@@ -112,6 +117,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   <!-- 檔口 -->
   <div id="s-stall" class="sec">
     <button class="btn big" style="margin:0 0 12px" data-act="newStall">🏪 新增檔口</button>
+    <div class="pills" id="agePills"></div>
     <div id="stallList"></div>
   </div>
 
@@ -214,6 +220,8 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
     <div><label>編號代號 <span class="muted">（2～3 碼英文）</span></label><input id="tCode" placeholder="NY" maxlength="4" style="text-transform:uppercase"></div>
     <div><label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…"></div>
   </div>
+  <label>年齡層 <span class="muted">（可複選）</span></label>
+  <div id="tAges" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
   <label>看圖管道 <span class="muted">（填 ID 或貼網址）</span></label>
   <div class="two">
@@ -230,6 +238,9 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 
 <script>
 const PLATS=['蝦皮','賣貨便','面交','其他'];
+const AGES=['小童','大童','配件・全齡'];
+const AGE_CLS={'小童':'','大童':'big','配件・全齡':'acc'};
+let ageFilter='全部';
 const CATS=["上衣/T恤","褲子/裙裝","外套/針織","配件/鞋帽","其他"];
 firebase.initializeApp({
   apiKey:"AIzaSyBHmyi3-dmv2Zcn8ULXwuIIODSWVdcDTdY",authDomain:"korea-buy-list.firebaseapp.com",
@@ -330,14 +341,17 @@ function renderShips(){
   }).join(''):'<div class="empty">沒有出貨紀錄</div>';
 }
 function renderStalls(){
-  $('stallList').innerHTML=stalls.length?stalls.map(s=>{
+  $('agePills').innerHTML=['全部',...AGES].map(t=>`<button class="pill ${t===ageFilter?'on':''}" data-act="ageFilter" data-id="${esc(t)}">${esc(t==='全部'?'全部檔口':t)}</button>`).join('');
+  const list=stalls.filter(s=>ageFilter==='全部'||(s.ages||[]).includes(ageFilter));
+  $('stallList').innerHTML=list.length?list.map(s=>{
     const mine=buys.filter(b=>b.stallId===s.id);
     const pending=mine.filter(b=>b.status!=='arrived').reduce((a,b)=>a+sumQty(b),0);
     const spent=mine.reduce((a,b)=>a+sumQty(b)*num(b.krw),0);
     return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15px">🏪 ${esc(s.name)}${s.code?` <span class="tag">${esc(s.code)}</span>`:''}</b><span class="muted">${esc(s.loc||'')}</span></div>
+      ${(s.ages||[]).length?`<div style="margin:4px 0">${s.ages.map(a=>`<span class="age ${AGE_CLS[a]||''}">${esc(a)}</span>`).join('')}</div>`:''}
       ${s.contact?`<div class="muted">📱 ${esc(s.contact)}</div>`:''}${lookLinks(s)}${s.note?`<div class="muted">📝 ${esc(s.note)}</div>`:''}
       <div class="row" style="margin-top:6px"><span>款式 ${products.filter(p=>p.stallId===s.id).length}・叫貨 ${mine.length} 筆・待到 ${pending} 件</span><b>${krw(spent)}</b></div></div>`;
-  }).join(''):'<div class="empty">還沒有檔口，先新增一個吧</div>';
+  }).join(''):`<div class="empty">${stalls.length?'沒有標記「'+esc(ageFilter)+'」的檔口':'還沒有檔口，先新增一個吧'}</div>`;
 }
 // 看圖管道：KakaoStory／IG／網站，ID 或網址都可以
 const toUrl=(v,base)=>/^https?:\/\//i.test(v)?v:base+encodeURIComponent(v);
@@ -386,6 +400,7 @@ const ACT={
   },
   close(id){$(id).classList.remove('on');document.body.classList.toggle('lock',!!document.querySelector('.mask.on'))},
   stallFilter(id){stallFilter=id;renderStock()},
+  ageFilter(id){ageFilter=id;renderStalls()},
   buyFilter(id){buyFilter=id;renderBuys()},
   async stock(id,u,t){
     const p=products.find(x=>x.id===id);if(!p)return;
@@ -496,7 +511,7 @@ const ACT={
   editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
   async saveStall(){
     const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
-    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
+    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),ages:[...document.querySelectorAll('#tAges input:checked')].map(i=>i.value),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
     try{
       if(editId)await db.collection('kids_stalls').doc(editId).update(data);
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
@@ -601,7 +616,7 @@ function shipSizes(qty){
 }
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
-  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
+  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
