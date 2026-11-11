@@ -220,6 +220,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
     <div><label>編號代號 <span class="muted">（2～3 碼英文）</span></label><input id="tCode" placeholder="NY" maxlength="4" style="text-transform:uppercase"></div>
     <div><label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…"></div>
   </div>
+  <label>Naver 地圖搜尋 <span class="muted">（韓文商場名或地址，空白會從位置自動抓）</span></label><input id="tMap" placeholder="例如：마마아동복、남대문시장8길 28">
   <label>年齡層 <span class="muted">（可複選）</span></label>
   <div id="tAges" style="display:flex;gap:8px;flex-wrap:wrap"></div>
   <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
@@ -355,8 +356,24 @@ function renderStalls(){
 }
 // 看圖管道：KakaoStory／IG／網站，ID 或網址都可以
 const toUrl=(v,base)=>/^https?:\/\//i.test(v)?v:base+encodeURIComponent(v);
+// Naver 地圖：優先用 mapq，否則從位置欄抓韓文商場名／路名
+function mapQuery(s){
+  if(s.mapq)return s.mapq;
+  const t=String(s.loc||'').replace(/[（(][^）)]*[）)]/g,' ').split(/[\s・,，、]+/).filter(Boolean);
+  const out=[];
+  t.forEach((w,i)=>{
+    if(/^[\d・,]+\s*[층호]?$/.test(w)||/^\d+[층호]$/.test(w)){if(/^\d+(-\d+)?$/.test(w)&&out.length&&/[길로]$/.test(out[out.length-1]))out.push(w);return}
+    if(/[\uAC00-\uD7A3]/.test(w))out.push(w);
+  });
+  if(!out.length)return '';
+  const area=/南大門|남대문/.test(s.loc)?'남대문':/東大門|동대문/.test(s.loc)?'동대문':'';
+  if(area&&!out[0].startsWith(area))out.unshift(area);
+  return out.join(' ');
+}
 function lookLinks(s){
   const a=[];
+  const mq=mapQuery(s);
+  if(mq)a.push(`<a class="look" href="https://map.naver.com/p/search/${encodeURIComponent(mq)}" target="_blank" rel="noopener">🗺️ 地圖</a>`);
   if(s.story)a.push(`<a class="look" href="${esc(toUrl(s.story,'https://story.kakao.com/'))}" target="_blank" rel="noopener">📖 KakaoStory</a>`);
   if(s.ig)a.push(`<a class="look" href="${esc(toUrl(s.ig,'https://www.instagram.com/'))}" target="_blank" rel="noopener">📷 IG</a>`);
   if(s.web)a.push(`<a class="look" href="${esc(/^https?:\/\//i.test(s.web)?s.web:'https://'+s.web)}" target="_blank" rel="noopener">🔗 網站</a>`);
@@ -511,7 +528,7 @@ const ACT={
   editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
   async saveStall(){
     const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
-    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),ages:[...document.querySelectorAll('#tAges input:checked')].map(i=>i.value),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
+    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),mapq:$('tMap').value.trim(),ages:[...document.querySelectorAll('#tAges input:checked')].map(i=>i.value),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
     try{
       if(editId)await db.collection('kids_stalls').doc(editId).update(data);
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
@@ -616,7 +633,7 @@ function shipSizes(qty){
 }
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
-  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
+  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tMap').value=s.mapq||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
