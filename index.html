@@ -28,7 +28,14 @@ body.lock{overflow:hidden}
 .num,.stats b{font-family:"Gowun Batang","Noto Serif TC",serif;font-weight:700;letter-spacing:.02em}
 .eyebrow{font-size:10.5px;letter-spacing:.3em;color:var(--sub);font-family:"Gowun Dodum",sans-serif}
 .box{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:14px 16px;margin-bottom:12px}
-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px}
+.lines{display:flex;border-bottom:1px solid var(--bd);margin-bottom:16px}
+.lines button{flex:1;border:0;background:none;padding:9px 0;font-size:14px;color:var(--sub);letter-spacing:.1em;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer}
+.lines button.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:600}
+.ovw{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+.ovw td,.ovw th{padding:8px 2px;border-bottom:1px solid var(--bd);text-align:right;font-weight:400}
+.ovw th{color:var(--sub);font-size:11px;letter-spacing:.1em}.ovw td:first-child,.ovw th:first-child{text-align:left}
+.ovw tr.tot td{border-bottom:0;border-top:1px solid var(--ink);font-weight:700}
 h1{font-family:"Noto Serif TC","Gowun Batang",serif;font-size:23px;font-weight:600;letter-spacing:.04em;margin-top:6px}
 .sec{display:none}.sec.on{display:block}
 .pills{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
@@ -117,7 +124,8 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
 </div>
 
 <div class="wrap" id="app" style="display:none">
-  <header><div><div class="eyebrow">기쁜날 · 好日子 KIDS — 재고 관리</div><h1 id="title">童裝庫存・檔口叫貨</h1></div><button class="btn line sm" data-act="logout">登出</button></header>
+  <header><div><div class="eyebrow" id="eyebrow">기쁜날 · 好日子 KIDS — 재고 관리</div><h1 id="title">童裝庫存・檔口叫貨</h1></div><button class="btn line sm" data-act="logout">登出</button></header>
+  <div class="lines" id="lineSw"><button data-act="setLine" data-id="kids">好日子kids</button><button data-act="setLine" data-id="life">好日子life</button></div>
 
   <!-- 庫存 -->
   <div id="s-stock" class="sec on">
@@ -155,6 +163,10 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
 
   <!-- 設定 -->
   <div id="s-set" class="sec">
+    <div class="box">
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">本月總覽</b><span class="muted">　kids＋life 合計</span>
+      <div id="ovw"></div>
+    </div>
     <div class="box">
       <label style="margin-top:0">預設匯率（1 台幣 = ? 韓幣）</label><p class="muted">新增叫貨時自動帶入，每筆叫貨可再改成實際匯率。改這裡不會影響以前的成本。</p><input id="sRate" type="number" step="0.1" inputmode="decimal">
       <button class="btn big" data-act="saveSettings">儲存匯率</button>
@@ -200,13 +212,13 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
     <div><label>分類</label><select id="pCat"></select></div>
     <div><label>常用檔口</label><select id="pStall"></select></div>
   </div>
-  <label>尺寸（逗號隔開）</label><input id="pUnits" value="90,100,110,120,130">
-  <label>尺寸表 <span class="muted">（建議身高／體重，可只填一部分）</span></label>
+  <label id="lUnits">尺寸（逗號隔開）</label><input id="pUnits" value="90,100,110,120,130">
+  <div id="pSizeWrap"><label>尺寸表 <span class="muted">（建議身高／體重，可只填一部分）</span></label>
   <div id="pSizeTbl"></div>
   <div class="two">
     <div><label>版型</label><select id="pFit"><option value="">未填</option><option>正常</option><option>偏大</option><option>偏小</option></select></div>
     <div><label>尺寸補充</label><input id="pFitNote" placeholder="例如：建議買大一號"></div>
-  </div>
+  </div></div>
   <div class="two">
     <div><label>參考韓幣進價 <span class="muted">（選填）</span></label><input id="pKrw" type="number" inputmode="numeric" placeholder="25000"></div>
     <div><label>售價 NT$</label><input id="pNt" type="number" inputmode="numeric" placeholder="650"></div>
@@ -228,7 +240,7 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
     <div><label>檔口 *</label><select id="bStall"></select></div>
   </div>
   <label>款式 *</label><select id="bProd"></select>
-  <label>各尺寸數量</label><div class="sizes" id="bSizes"></div>
+  <label id="lBSizes">各尺寸數量</label><div class="sizes" id="bSizes"></div>
   <div class="two">
     <div><label>本次單件韓幣</label><input id="bKrw" type="number" inputmode="numeric"></div>
     <div><label>實際匯率</label><input id="bRate" type="number" step="0.01" inputmode="decimal"></div>
@@ -248,7 +260,7 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
     <div><label>平台</label><select id="hPlat"></select></div>
   </div>
   <label>款式 *</label><select id="hProd"></select>
-  <label>各尺寸出貨數量 <span class="muted">（灰字為目前庫存）</span></label><div class="sizes" id="hSizes"></div>
+  <label><span id="lHSizes">各尺寸出貨數量</span> <span class="muted">（灰字為目前庫存）</span></label><div class="sizes" id="hSizes"></div>
   <div class="two">
     <div><label>買家</label><input id="hBuyer"></div>
     <div><label>訂單編號</label><input id="hOrder"></div>
@@ -268,8 +280,9 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
     <div><label>位置 / 商場</label><input id="tLoc" placeholder="東大門、南大門…"></div>
   </div>
   <label>Naver 地圖搜尋 <span class="muted">（韓文商場名或地址，空白會從位置自動抓）</span></label><input id="tMap" placeholder="例如：마마아동복、남대문시장8길 28">
-  <label>年齡層 <span class="muted">（可複選）</span></label>
-  <div id="tAges" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+  <label>用於</label><select id="tLine"><option value="kids">好日子kids（童裝）</option><option value="life">好日子life（文創小物）</option><option value="both">兩邊都有</option></select>
+  <div id="tAgesWrap"><label>年齡層 <span class="muted">（可複選）</span></label>
+  <div id="tAges" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>
   <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
   <label>看圖管道 <span class="muted">（填 ID 或貼網址）</span></label>
   <div class="two">
@@ -290,6 +303,12 @@ const AGES=['小童','大童','配件・全齡'];
 const AGE_CLS={'小童':'','大童':'big','配件・全齡':'acc'};
 let ageFilter='全部';
 const CATS=["上衣/T恤","褲子/裙裝","外套/針織","配件/鞋帽","其他"];
+const LW={
+  kids:{title:'童裝庫存・檔口叫貨',eb:'기쁜날 · 好日子 KIDS — 재고 관리',u:'尺寸',units:'90,100,110,120,130',unitsLbl:'尺寸（逗號隔開）',cats:CATS,file:'kids_'},
+  life:{title:'文創小物庫存・叫貨',eb:'기쁜날 · 好日子 LIFE — 재고 관리',u:'規格',units:'單一規格',unitsLbl:'規格（逗號隔開，例如：粉色,米色；沒有分就填「單一規格」）',cats:["文具","貼紙/便條紙","生活雜貨","杯子/餐具","飾品","送禮小物","其他"],file:'life_'}
+};
+let curLine='kids';try{if(localStorage.getItem('hzLine')==='life')curLine='life'}catch(e){}
+const U=()=>LW[curLine].u;
 firebase.initializeApp({
   apiKey:"AIzaSyBHmyi3-dmv2Zcn8ULXwuIIODSWVdcDTdY",authDomain:"korea-buy-list.firebaseapp.com",
   projectId:"korea-buy-list",storageBucket:"korea-buy-list.firebasestorage.app",
@@ -307,6 +326,25 @@ function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';cle
 const ph='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="%238C705F" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
 
 let products=[],stalls=[],buys=[],ships=[],settings={rate:41.5};
+let allProducts=[],allStalls=[],allBuys=[],allShips=[];
+const lineOfP=p=>p&&p.line==='life'?'life':'kids';
+const lineOfR=r=>r.line||lineOfP(allProducts.find(p=>p.id===r.productId));
+const stallIn=s=>s.line==='both'||(s.line==='life'?'life':'kids')===curLine;
+function applyLine(){
+  products=allProducts.filter(p=>lineOfP(p)===curLine);
+  stalls=allStalls.filter(stallIn);
+  buys=allBuys.filter(b=>lineOfR(b)===curLine);
+  ships=allShips.filter(h=>lineOfR(h)===curLine);
+  if(stallFilter!=='全部'&&!stalls.some(s=>s.id===stallFilter))stallFilter='全部';
+  render();
+}
+function applyWords(){
+  const w=LW[curLine];
+  $('title').textContent=w.title;$('eyebrow').textContent=w.eb;document.title=w.title;
+  $('lUnits').textContent=w.unitsLbl;$('lBSizes').textContent='各'+w.u+'數量';$('lHSizes').textContent='各'+w.u+'出貨數量';
+  $('pSizeWrap').style.display=curLine==='life'?'none':'';
+  document.querySelectorAll('#lineSw button').forEach(b=>b.classList.toggle('on',b.dataset.id===curLine));
+}
 let platFilter='全部',stallFilter='全部',buyFilter='ordered',editId=null,unsubs=[];
 
 // 舊版商品的價格存在 prices[尺寸]，新版用 krw / nt；兩種都讀得到
@@ -319,7 +357,7 @@ const lastKrw=(p,exceptId)=>{const h=priceHist(p.id).filter(b=>b.id!==exceptId);
 const krwRange=p=>{const ks=priceHist(p.id).map(b=>num(b.krw));if(!ks.length)return pKrw(p)?'參考進價 '+krw(pKrw(p)):'';const lo=Math.min(...ks),hi=Math.max(...ks);return '進價 '+(lo===hi?krw(lo):krw(lo)+'～'+num(hi).toLocaleString())};
 // 建議售價：成本 × 2～2.5，取到十位
 const suggest=c=>c?`建議售價 ${nt(Math.round(c*2/10)*10)}～${nt(Math.round(c*2.5/10)*10)}`:'';
-const stallName=id=>(stalls.find(s=>s.id===id)||{}).name||'未指定檔口';
+const stallName=id=>(allStalls.find(s=>s.id===id)||{}).name||'未指定檔口';
 
 // ===== 登入 =====
 auth.onAuthStateChanged(u=>{
@@ -329,22 +367,22 @@ auth.onAuthStateChanged(u=>{
   if(!u)return;
   const err=e=>{console.error(e);if(e.code==='permission-denied')toast('這個帳號沒有權限，請確認 Firebase 規則裡的信箱')};
   unsubs.push(
-    db.collection('kids_products').onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
-    db.collection('kids_stalls').onSnapshot(s=>{stalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
-    db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));buys=all.filter(x=>x.type!=='ship');ships=all.filter(x=>x.type==='ship');render()},err),
+    db.collection('kids_products').onSnapshot(s=>{allProducts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
+    db.collection('kids_stalls').onSnapshot(s=>{allStalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
+    db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));allBuys=all.filter(x=>x.type!=='ship');allShips=all.filter(x=>x.type==='ship');applyLine()},err),
     db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock()},err)
   );
 });
 
 // ===== 畫面 =====
-function render(){renderStock();renderBuys();renderShips();renderStalls()}
+function render(){renderStock();renderBuys();renderShips();renderStalls();renderOverview()}
 function renderStock(){
   const kw=$('q').value.trim().toLowerCase();
   const total=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0),0);
   const value=products.reduce((s,p)=>s+Math.max(0,(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0))*avgCost(p),0);
   const out=products.filter(p=>(p.units||[]).some(u=>stockOf(p,u)<=0)).length;
   renderRestock();
-  $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value)}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有尺寸缺貨</small></div>`;
+  $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value)}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有${U()}缺貨</small></div>`;
   $('stallPills').innerHTML=['全部',...stalls.map(s=>s.id)].map(id=>`<button class="pill ${id===stallFilter?'on':''}" data-act="stallFilter" data-id="${esc(id)}">${esc(id==='全部'?'全部檔口':stallName(id))}</button>`).join('');
   const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||[p.sku,p.name].some(v=>String(v||'').toLowerCase().includes(kw))));
   $('stockList').innerHTML=list.length?list.map(p=>{
@@ -390,8 +428,8 @@ function renderShips(){
   }).join(''):'<div class="empty">沒有出貨紀錄</div>';
 }
 function renderStalls(){
-  $('agePills').innerHTML=['全部',...AGES].map(t=>`<button class="pill ${t===ageFilter?'on':''}" data-act="ageFilter" data-id="${esc(t)}">${esc(t==='全部'?'全部檔口':t)}</button>`).join('');
-  const list=stalls.filter(s=>ageFilter==='全部'||(s.ages||[]).includes(ageFilter));
+  $('agePills').innerHTML=curLine==='life'?'':['全部',...AGES].map(t=>`<button class="pill ${t===ageFilter?'on':''}" data-act="ageFilter" data-id="${esc(t)}">${esc(t==='全部'?'全部檔口':t)}</button>`).join('');
+  const list=stalls.filter(s=>curLine==='life'||ageFilter==='全部'||(s.ages||[]).includes(ageFilter));
   $('stallList').innerHTML=list.length?list.map(s=>{
     const mine=buys.filter(b=>b.stallId===s.id);
     const pending=mine.filter(b=>b.status!=='arrived').reduce((a,b)=>a+sumQty(b),0);
@@ -432,7 +470,7 @@ const label=p=>(p.sku?p.sku+'  ':'')+p.name;
 function nextSku(stallId){
   const st=stalls.find(s=>s.id===stallId);
   const d=today();const pre=((st&&st.code)||'XX').toUpperCase()+'-'+d.slice(2,4)+d.slice(5,7)+'-';
-  const max=products.filter(p=>p.id!==editId&&String(p.sku||'').startsWith(pre)).reduce((m,p)=>Math.max(m,parseInt(String(p.sku).slice(pre.length))||0),0);
+  const max=allProducts.filter(p=>p.id!==editId&&String(p.sku||'').startsWith(pre)).reduce((m,p)=>Math.max(m,parseInt(String(p.sku).slice(pre.length))||0),0);
   return pre+String(max+1).padStart(3,'0');
 }
 const rateOf=b=>num(b.rate)||num(settings.rate)||41.5;
@@ -478,7 +516,7 @@ const ACT={
   async saveProd(){
     const name=$('pName').value.trim();if(!name)return toast('請填寫款式名稱');
     const units=[...new Set($('pUnits').value.split(/[,，、\s]+/).map(s=>s.trim()).filter(Boolean))];
-    if(!units.length)return toast('請至少填一個尺寸');
+    if(!units.length)return toast('請至少填一個'+U());
     let image=$('pImg').value.trim();const f=$('pFile').files[0];
     try{
       if(f){
@@ -488,8 +526,8 @@ const ACT={
         await ref.put(f);image=await ref.getDownloadURL();
       }
       const sku=$('pSku').value.trim().toUpperCase();
-      if(sku&&products.some(x=>x.id!==editId&&String(x.sku||'').toUpperCase()===sku))return toast('編號 '+sku+' 已經有其他款式使用');
-      const data={sku,name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim(),sizeInfo:Object.fromEntries(Object.entries(readSizeInfo()).filter(([u])=>units.includes(u))),fit:$('pFit').value,fitNote:$('pFitNote').value.trim()};
+      if(sku&&allProducts.some(x=>x.id!==editId&&String(x.sku||'').toUpperCase()===sku))return toast('編號 '+sku+' 已經有其他款式使用');
+      const data={line:curLine,sku,name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim(),sizeInfo:Object.fromEntries(Object.entries(readSizeInfo()).filter(([u])=>units.includes(u))),fit:$('pFit').value,fitNote:$('pFitNote').value.trim()};
       if(editId)await db.collection('kids_products').doc(editId).update(data);
       else await db.collection('kids_products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
       ACT.close('m-prod');toast('已儲存');
@@ -509,8 +547,8 @@ const ACT={
     const p=products.find(x=>x.id===$('bProd').value);if(!p)return toast('請選擇款式');
     const stallId=$('bStall').value;if(!stallId)return toast('請選擇檔口（可先到「檔口」新增）');
     const qty={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
-    if(!Object.keys(qty).length)return toast('請至少填一個尺寸的數量');
-    const data={date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),rate:num($('bRate').value)||num(settings.rate)||41.5,extraNt:num($('bExtra').value),note:$('bNote').value.trim()};
+    if(!Object.keys(qty).length)return toast('請至少填一個'+U()+'的數量');
+    const data={line:curLine,date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),rate:num($('bRate').value)||num(settings.rate)||41.5,extraNt:num($('bExtra').value),note:$('bNote').value.trim()};
     try{
       if(editId){
         const old=buys.find(b=>b.id===editId);
@@ -555,11 +593,11 @@ const ACT={
   async saveShip(){
     const p=products.find(x=>x.id===$('hProd').value);if(!p)return toast('請選擇款式');
     const qty={};document.querySelectorAll('#hSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
-    if(!Object.keys(qty).length)return toast('請至少填一個尺寸的數量');
+    if(!Object.keys(qty).length)return toast('請至少填一個'+U()+'的數量');
     const old=editId?ships.find(h=>h.id===editId):null;
     const short=Object.entries(qty).filter(([u,n])=>{const back=old&&old.productId===p.id?num((old.qty||{})[u]):0;return n>stockOf(p,u)+back}).map(([u])=>u);
     if(short.length&&!confirm('尺寸 '+short.join('、')+' 庫存不足，出貨後會變成負數，確定要儲存？'))return;
-    const data={type:'ship',date:$('hDate').value||today(),platform:$('hPlat').value,productId:p.id,productName:p.name,qty,buyer:$('hBuyer').value.trim(),orderNo:$('hOrder').value.trim(),nt:num($('hNt').value),unitCost:Math.round(avgCost(p)*100)/100,note:$('hNote').value.trim()};
+    const data={line:curLine,type:'ship',date:$('hDate').value||today(),platform:$('hPlat').value,productId:p.id,productName:p.name,qty,buyer:$('hBuyer').value.trim(),orderNo:$('hOrder').value.trim(),nt:num($('hNt').value),unitCost:Math.round(avgCost(p)*100)/100,note:$('hNote').value.trim()};
     const batch=db.batch();
     if(old){batch.update(db.collection('kids_purchases').doc(old.id),data);moveStock(batch,old,1)}
     else batch.set(db.collection('kids_purchases').doc(),{...data,createdAtMs:Date.now()});
@@ -576,7 +614,7 @@ const ACT={
   editStall(id){editId=id;fillStall(stalls.find(s=>s.id===id)||{})},
   async saveStall(){
     const name=$('tName').value.trim();if(!name)return toast('請填寫檔口名稱');
-    const data={name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),mapq:$('tMap').value.trim(),ages:[...document.querySelectorAll('#tAges input:checked')].map(i=>i.value),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
+    const data={line:$('tLine').value,name,code:$('tCode').value.trim().toUpperCase(),loc:$('tLoc').value.trim(),contact:$('tContact').value.trim(),mapq:$('tMap').value.trim(),ages:[...document.querySelectorAll('#tAges input:checked')].map(i=>i.value),story:$('tStory').value.trim(),ig:$('tIg').value.trim().replace(/^@/,''),web:$('tWeb').value.trim(),note:$('tNote').value.trim()};
     try{
       if(editId)await db.collection('kids_stalls').doc(editId).update(data);
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
@@ -590,6 +628,10 @@ const ACT={
     ACT.close('m-stall');toast('已刪除');
   },
   // 設定
+  setLine(id){
+    if(id===curLine)return;curLine=id;try{localStorage.setItem('hzLine',id)}catch(e){}
+    stallFilter='全部';ageFilter='全部';applyWords();applyLine();scrollTo(0,0);
+  },
   async saveRestock(){
     const a=parseInt($('sAlert').value)||14,c=parseInt($('sCover').value)||30;
     if(c<a)return toast('備貨天數要大於等於提醒天數');
@@ -648,7 +690,7 @@ async function commit(batch,msg){
 function csv(rows,name){
   const text='﻿'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8;'}));
-  a.download=name+'_'+today()+'.csv';a.click();
+  a.download=LW[curLine].file+name+'_'+today()+'.csv';a.click();
 }
 // ===== 補貨提醒 =====
 const dstr=ms=>new Date(ms-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
@@ -680,7 +722,7 @@ function renderRestock(){
   const byStall={};
   list.forEach(r=>{const k=r.p.stallId||'';(byStall[k]=byStall[k]||{});(byStall[k][r.p.id]=byStall[k][r.p.id]||[]).push(r)});
   const total=list.reduce((a,r)=>a+r.want,0);
-  $('restock').innerHTML=`<details class="box rs" id="rsBox" ${rsOpen?'open':''}><summary><span>補貨提醒</span><small>${list.length} 個尺寸・建議叫 ${total} 件</small></summary>`+
+  $('restock').innerHTML=`<details class="box rs" id="rsBox" ${rsOpen?'open':''}><summary><span>補貨提醒</span><small>${list.length} 個${U()}・建議叫 ${total} 件</small></summary>`+
     Object.entries(byStall).map(([sid,prods])=>`<div class="rs-g">${esc(stallName(sid))}</div>`+Object.values(prods).map(rows=>{
       const p=rows[0].p;
       return `<div class="rs-row"><div style="min-width:0"><b>${p.sku?`<span class="muted">${esc(p.sku)}</span> `:''}${esc(p.name)}</b>${rows.map(r=>`<div class="rs-l"><span class="rs-sz">${esc(r.u)}</span>${r.stock<=0?'<em>缺貨</em>':`剩 ${r.stock}`}${r.pend?`・在途 ${r.pend}`:''}・近${r.s30?'30':'60'}天賣 ${r.s30||r.s60}${r.stock>0||r.pend?`・約撐 ${Math.floor(r.days)} 天`:''}　<b>建議 ${r.want} 件</b></div>`).join('')}</div><button class="btn sm" data-act="restockBuy" data-id="${p.id}" style="flex-shrink:0">叫貨</button></div>`;
@@ -701,6 +743,7 @@ function sizeRows(info){
 $('pUnits').addEventListener('input',()=>sizeRows({}));
 const hasSize=p=>Object.values(p.sizeInfo||{}).some(z=>z&&(z.h||z.w));
 function sizeDetails(p){
+  if(lineOfP(p)==='life')return '';
   if(!hasSize(p)&&!p.fit&&!p.fitNote)return '';
   const fit=[p.fit?'版型'+p.fit:'',p.fitNote].filter(Boolean).join('・');
   const rows=(p.units||[]).filter(u=>{const z=(p.sizeInfo||{})[u];return z&&(z.h||z.w)});
@@ -715,15 +758,26 @@ function fallbackCopy(t,done){
   const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();
   try{document.execCommand('copy');done()}catch(e){toast('複製失敗')}a.remove();
 }
+// ===== 本月總覽（kids＋life）=====
+function renderOverview(){
+  const ym=today().slice(0,7);
+  const calc=l=>{const m=allShips.filter(h=>lineOfR(h)===l&&String(h.date).startsWith(ym));
+    return [m.reduce((a,h)=>a+sumQty(h),0),m.reduce((a,h)=>a+sumQty(h)*num(h.nt),0),m.reduce((a,h)=>a+sumQty(h)*(num(h.nt)-(h.unitCost!=null?num(h.unitCost):shipCost(h))),0)]};
+  const k=calc('kids'),l=calc('life'),t=k.map((v,i)=>v+l[i]);
+  const tr=(n,r,c)=>`<tr${c?' class="tot"':''}><td>${n}</td><td>${r[0]}</td><td>${nt(r[1])}</td><td style="color:${r[2]>=0?'var(--ok)':'var(--warn)'}">${nt(r[2])}</td></tr>`;
+  $('ovw').innerHTML=`<table class="ovw"><tr><th>${ym.replace('-','/')}</th><th>件數</th><th>營收</th><th>毛利</th></tr>${tr('好日子kids',k)}${tr('好日子life',l)}${tr('合計',t,1)}</table>`;
+}
+$('tLine').addEventListener('change',()=>{$('tAgesWrap').style.display=$('tLine').value==='life'?'none':''});
+applyWords();
 let autoSku='';
 function fillProd(p){
   autoSku=editId?'':nextSku(p.stallId||'');
   $('pSku').value=p.sku||autoSku;
   $('pTitle').textContent=editId?'編輯款式':'新增款式';
   $('pName').value=p.name||'';
-  $('pCat').innerHTML=opts(CATS.map(c=>[c,c]),p.category||CATS[0]);
+  {const cs=[...new Set([...LW[curLine].cats,p.category].filter(Boolean))];$('pCat').innerHTML=opts(cs.map(c=>[c,c]),p.category||cs[0]);}
   $('pStall').innerHTML=opts(stalls.map(s=>[s.id,s.name]),p.stallId||'','未指定');
-  $('pUnits').value=(p.units||['90','100','110','120','130']).join(',');
+  $('pUnits').value=(p.units||LW[curLine].units.split(',')).join(',');
   $('pKrw').value=pKrw(p)||'';$('pNt').value=pNt(p)||'';
   $('pImg').value=p.image||'';$('pFile').value='';$('pNote').value=p.note||'';
   $('pSizeTbl').innerHTML='';sizeRows(p.sizeInfo||{});$('pFit').value=p.fit||'';$('pFitNote').value=p.fitNote||'';
@@ -763,7 +817,7 @@ function shipSizes(qty){
 }
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
-  $('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tMap').value=s.mapq||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
+  $('tLine').value=s.line||curLine;$('tAgesWrap').style.display=$('tLine').value==='life'?'none':'';$('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tMap').value=s.mapq||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
