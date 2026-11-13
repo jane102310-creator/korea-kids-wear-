@@ -17,83 +17,93 @@
     match /kids_settings/{id}  { allow read, write: if request.auth != null && request.auth.token.email == '你的信箱'; }
 帳號：Firebase 控制台 → Authentication → 新增使用者（Email/密碼）。信箱只寫在規則裡，不放在網頁程式中。
 -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;600;700&family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#FDFBF7;--card:#fff;--text:#5A4D41;--sub:#8C705F;--acc:#8C705F;--light:#F4EBE1;--bd:#EFECE6;--sh:0 4px 16px rgba(90,77,65,.06);--ok:#2E8B57;--warn:#D9534F;--wait:#C98A2B}
-*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang TC","Noto Sans TC",sans-serif}
-body{background:var(--bg);color:var(--text);padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
+:root{--bg:#f3efe7;--card:#fbf9f4;--text:#2e2a25;--ink:#2e2a25;--sub:#8f877b;--acc:#6b5d4d;--acc-d:#4a4036;--light:#e8e1d5;--bd:#e0d9cc;--sage:#dfe3d6;--sand:#efe6d8;--sh:none;--ok:#5b7150;--warn:#a04a3a;--wait:#9a8462}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans TC","Gowun Dodum",-apple-system,BlinkMacSystemFont,"PingFang TC",sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;padding:28px 18px calc(96px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font-family:inherit}
 body.lock{overflow:hidden}
 .wrap{max-width:520px;margin:0 auto}
-.box{background:var(--card);border:1px solid var(--bd);border-radius:16px;box-shadow:var(--sh);padding:14px;margin-bottom:12px}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-h1{font-size:19px}
+.num,.stats b{font-family:"Gowun Batang","Noto Serif TC",serif;font-weight:700;letter-spacing:.02em}
+.eyebrow{font-size:10.5px;letter-spacing:.3em;color:var(--sub);font-family:"Gowun Dodum",sans-serif}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--bd)}
+h1{font-family:"Noto Serif TC","Gowun Batang",serif;font-size:23px;font-weight:600;letter-spacing:.04em;margin-top:6px}
 .sec{display:none}.sec.on{display:block}
-.pills{display:flex;gap:8px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.pills{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
 .pills::-webkit-scrollbar{display:none}
-.pill{background:var(--card);border:1px solid var(--bd);color:var(--sub);padding:7px 13px;border-radius:20px;font-size:13px;font-weight:600;white-space:nowrap;cursor:pointer}
-.pill.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.pill{background:transparent;border:1px solid var(--bd);color:var(--sub);padding:4px 12px;border-radius:2px;font-size:12.5px;letter-spacing:.05em;white-space:nowrap;cursor:pointer}
+.pill.on{background:var(--ink);color:#fbf9f4;border-color:var(--ink)}
 nav{position:fixed;bottom:0;left:0;width:100%;background:var(--card);border-top:1px solid var(--bd);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:0;padding:10px 0;font-size:12px;color:var(--sub);cursor:pointer;line-height:1.5}
-nav button.on{color:var(--acc);font-weight:700}
-.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
-.btn.big{width:100%;padding:13px;font-size:15px;border-radius:14px;margin-top:10px}
-.btn.line{background:#fff;color:var(--sub);border:1px solid var(--bd)}
-.btn.red{background:var(--warn)}.btn.green{background:var(--ok)}.btn.sm{padding:5px 10px;font-size:12px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;margin:4px 0}
-.muted{color:#9a8f85;font-size:12px}
-.mask{position:fixed;inset:0;background:rgba(90,77,65,.4);display:none;justify-content:center;align-items:flex-end;z-index:200}
+nav button{flex:1;background:none;border:0;border-top:2px solid transparent;margin-top:-1px;padding:9px 0 10px;font-size:13px;color:var(--sub);cursor:pointer;line-height:1.4;letter-spacing:.1em}
+nav button small{display:block;font-size:9.5px;letter-spacing:.2em;font-family:"Gowun Dodum",sans-serif}
+nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
+.btn{background:var(--ink);color:#fbf9f4;border:1px solid var(--ink);border-radius:4px;padding:7px 14px;font-size:13px;letter-spacing:.05em;cursor:pointer}
+.btn.big{width:100%;padding:11px;font-size:14px;border-radius:4px;margin-top:10px}
+.btn.add{background:transparent;color:var(--acc-d);border:1px dashed var(--acc)}
+.btn.line{background:#fff;color:var(--text);border:1px solid var(--bd)}
+.btn.red{background:#fff;color:var(--warn);border-color:#e3c5bd}.btn.green{background:var(--acc-d);border-color:var(--acc-d)}.btn.sm{padding:4px 10px;font-size:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px;margin:4px 0}
+.muted{color:var(--sub);font-size:12px}
+.mask{position:fixed;inset:0;background:rgba(46,42,37,.35);display:none;justify-content:center;align-items:flex-end;z-index:200}
 .mask.on{display:flex}
-.sheet{background:var(--card);width:100%;max-width:520px;border-radius:24px 24px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
-.sheet h2{font-size:18px;display:flex;justify-content:space-between;margin-bottom:10px}
-.sheet h2 span{cursor:pointer;color:var(--sub)}
-label{display:block;font-size:13px;font-weight:600;color:var(--sub);margin:10px 0 5px}
-input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;font-size:16px;background:#FAFAFA;color:var(--text)}
+.sheet{background:var(--card);width:100%;max-width:520px;border-radius:12px 12px 0 0;padding:18px 18px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
+.sheet h2{font-family:"Noto Serif TC",serif;font-size:17px;font-weight:600;letter-spacing:.05em;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-bottom:10px;border-bottom:1px solid var(--bd)}
+.sheet h2 b{font-weight:600}
+.sheet h2 span{cursor:pointer;color:var(--sub);font-family:"Noto Sans TC",sans-serif;font-size:14px}
+label{display:block;font-size:11.5px;color:var(--sub);letter-spacing:.05em;margin:12px 0 4px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:4px;font-size:16px;background:#fff;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.prod{display:flex;gap:12px}
-.prod img{width:72px;height:72px;border-radius:12px;object-fit:cover;background:var(--light);flex-shrink:0}
+.prod{display:flex;gap:12px;cursor:pointer}
+.prod img{width:72px;height:72px;border-radius:4px;object-fit:cover;background:var(--light);border:1px solid var(--bd);flex-shrink:0}
 .prod .info{flex:1;min-width:0}
-.prod b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.box>.row:first-child b{font-weight:600}
 .sizes{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.sz{display:flex;align-items:center;border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:13px}
-.sz span{padding:5px 8px;background:var(--light);font-weight:600}
-.sz button{width:28px;height:30px;border:0;background:#fff;font-size:16px;color:var(--sub);cursor:pointer}
-.sz b{min-width:22px;text-align:center}
+.sz{display:flex;align-items:center;border:1px solid var(--bd);border-radius:4px;overflow:hidden;font-size:13px;background:#fff}
+.sz span{padding:5px 8px;background:var(--sand);color:var(--acc-d);font-weight:500}
+.sz button{width:28px;height:30px;border:0;background:#fff;font-size:16px;color:var(--acc);cursor:pointer}
+.sz b{min-width:22px;text-align:center;font-family:"Gowun Batang",serif}
 .sz.zero b{color:var(--warn)}
-.tag{display:inline-block;font-size:11px;background:var(--light);color:var(--sub);padding:2px 8px;border-radius:6px;margin-right:4px}
-.st{font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px}
-.st.ordered{background:#FDF1DE;color:var(--wait)}.st.arrived{background:#E3F3EA;color:var(--ok)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
-.stats div{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:10px;text-align:center}
-.stats b{display:block;font-size:18px}.stats small{color:var(--sub);font-size:11px}
-#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#5A4D41;color:#fff;padding:10px 18px;border-radius:20px;font-size:14px;z-index:999;display:none;max-width:90%}
-.empty{text-align:center;color:#999;padding:28px;font-size:14px}
-.agechk{display:flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:20px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--sub);background:#FAFAFA;cursor:pointer;margin:0}
-.agechk input{width:auto;margin:0}
-.agechk:has(input:checked){background:var(--acc);color:#fff;border-color:var(--acc)}
-.age{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-right:4px;background:#FDF1DE;color:var(--wait)}
-.age.big{background:#E6EEF6;color:#4A6A8A}.age.acc{background:#EEE;color:#777}
-.look{display:inline-block;font-size:12px;font-weight:600;color:var(--acc);background:var(--light);padding:4px 10px;border-radius:8px;text-decoration:none}
-#login{max-width:360px;margin:12vh auto 0}
+.tag{display:inline-block;font-size:10.5px;background:var(--light);color:var(--acc-d);padding:0 7px;border-radius:2px;margin-right:4px;letter-spacing:.05em}
+.st{font-size:10.5px;padding:0 7px;border-radius:2px;letter-spacing:.1em;border:1px solid}
+.st.ordered{background:var(--sand);color:var(--wait);border-color:var(--wait)}.st.arrived{background:var(--sage);color:var(--ok);border-color:#b9c2ad}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stats div{background:var(--card);border:1px solid var(--bd);outline:1px solid var(--bd);outline-offset:-5px;border-radius:6px;padding:12px 6px;text-align:center}
+.stats b{display:block;font-size:19px;color:var(--acc-d);line-height:1.3}.stats small{color:var(--sub);font-size:10.5px;letter-spacing:.15em}
+#toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:var(--ink);color:#fbf9f4;padding:8px 16px;border-radius:999px;font-size:13px;z-index:999;display:none;max-width:90%}
+.empty{text-align:center;color:var(--sub);padding:28px;font-size:13px;letter-spacing:.05em;border:1px dashed var(--bd);border-radius:6px}
+.agechk{display:flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:2px;padding:5px 12px;font-size:13px;color:var(--sub);background:#fff;cursor:pointer;margin:0;letter-spacing:.05em}
+.agechk input{width:auto;margin:0;accent-color:var(--ink)}
+.agechk:has(input:checked){background:var(--ink);color:#fbf9f4;border-color:var(--ink)}
+.age{display:inline-block;font-size:10.5px;padding:0 7px;border-radius:2px;margin-right:4px;letter-spacing:.05em;background:var(--sand);color:var(--wait)}
+.age.big{background:#e2e7ea;color:#56687a}.age.acc{background:var(--light);color:var(--sub)}
+.look{display:inline-block;font-size:11.5px;color:var(--acc-d);text-decoration:none;border-bottom:1px solid var(--bd);letter-spacing:.03em;margin-right:4px}
+#login{max-width:360px;margin:12vh auto 0;padding:24px 20px}
 </style>
 </head>
 <body>
 
 <div id="login" class="box" style="display:none">
-  <h1 style="text-align:center;margin-bottom:6px">童裝庫存・檔口叫貨</h1>
-  <p class="muted" style="text-align:center">管理者登入</p>
+  <div class="eyebrow" style="text-align:center">기쁜날 · 好日子 KIDS</div>
+  <h1 style="text-align:center">童裝庫存・檔口叫貨</h1>
+  <p class="muted" style="text-align:center;letter-spacing:.15em">管理者登入</p>
   <label>信箱</label><input id="lEmail" type="email" autocomplete="username">
   <label>密碼</label><input id="lPwd" type="password" autocomplete="current-password">
   <button class="btn big" data-act="login">登入</button>
 </div>
 
 <div class="wrap" id="app" style="display:none">
-  <header><h1 id="title">童裝庫存・檔口叫貨</h1><button class="btn line sm" data-act="logout">登出</button></header>
+  <header><div><div class="eyebrow">기쁜날 · 好日子 KIDS — 재고 관리</div><h1 id="title">童裝庫存・檔口叫貨</h1></div><button class="btn line sm" data-act="logout">登出</button></header>
 
   <!-- 庫存 -->
   <div id="s-stock" class="sec on">
     <div class="stats" id="stockStats"></div>
-    <input id="q" placeholder="🔍 搜尋編號或款式名稱" style="margin-bottom:10px">
+    <input id="q" placeholder="搜尋編號或款式名稱" style="margin-bottom:10px">
     <div class="pills" id="stallPills"></div>
-    <button class="btn big" style="margin:0 0 12px" data-act="newProd">➕ 新增款式</button>
+    <button class="btn big add" style="margin:0 0 12px" data-act="newProd">＋ 新增款式</button>
     <div id="stockList"></div>
   </div>
 
@@ -101,22 +111,22 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
   <div id="s-buy" class="sec">
     <div class="stats" id="buyStats"></div>
     <div class="pills" id="buyPills"></div>
-    <button class="btn big" style="margin:0 0 12px" data-act="newBuy">📝 新增叫貨</button>
+    <button class="btn big add" style="margin:0 0 12px" data-act="newBuy">＋ 新增叫貨</button>
     <div id="buyList"></div>
   </div>
 
   <!-- 出貨紀錄 -->
   <div id="s-ship" class="sec">
     <div class="stats" id="shipStats"></div>
-    <input id="sq" placeholder="🔍 搜尋買家、款式、商品編號、訂單編號" style="margin-bottom:10px">
+    <input id="sq" placeholder="搜尋買家、款式、商品編號、訂單編號" style="margin-bottom:10px">
     <div class="pills" id="shipPills"></div>
-    <button class="btn big" style="margin:0 0 12px" data-act="newShip">📤 新增出貨</button>
+    <button class="btn big add" style="margin:0 0 12px" data-act="newShip">＋ 新增出貨</button>
     <div id="shipList"></div>
   </div>
 
   <!-- 檔口 -->
   <div id="s-stall" class="sec">
-    <button class="btn big" style="margin:0 0 12px" data-act="newStall">🏪 新增檔口</button>
+    <button class="btn big add" style="margin:0 0 12px" data-act="newStall">＋ 新增檔口</button>
     <div class="pills" id="agePills"></div>
     <div id="stallList"></div>
   </div>
@@ -128,30 +138,30 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
       <button class="btn big" data-act="saveSettings">儲存匯率</button>
     </div>
     <div class="box">
-      <b>匯出資料</b>
-      <button class="btn big line" data-act="exportStock">📦 匯出庫存 CSV</button>
-      <button class="btn big line" data-act="exportBuy">📝 匯出叫貨紀錄 CSV</button>
-      <button class="btn big line" data-act="exportShip">📤 匯出出貨紀錄 CSV</button>
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">匯出資料</b>
+      <button class="btn big line" data-act="exportStock">匯出庫存 CSV</button>
+      <button class="btn big line" data-act="exportBuy">匯出叫貨紀錄 CSV</button>
+      <button class="btn big line" data-act="exportShip">匯出出貨紀錄 CSV</button>
     </div>
     <div class="box">
-      <b>修正庫存</b>
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">修正庫存</b>
       <p class="muted" style="margin-top:4px">庫存數字對不上時，依「已到貨的叫貨 − 出貨紀錄」重新計算（會覆蓋手動 +／− 的調整）。</p>
-      <button class="btn big line" data-act="recalc">🔄 依叫貨紀錄重算庫存</button>
+      <button class="btn big line" data-act="recalc">依叫貨紀錄重算庫存</button>
     </div>
   </div>
 </div>
 
 <nav id="nav" style="display:none">
-  <button class="on" data-act="nav" data-id="stock">📦<br>庫存</button>
-  <button data-act="nav" data-id="buy">📝<br>叫貨紀錄</button>
-  <button data-act="nav" data-id="ship">📤<br>出貨</button>
-  <button data-act="nav" data-id="stall">🏪<br>檔口</button>
-  <button data-act="nav" data-id="set">⚙️<br>設定</button>
+  <button class="on" data-act="nav" data-id="stock"><small>재고</small>庫存</button>
+  <button data-act="nav" data-id="buy"><small>주문</small>叫貨</button>
+  <button data-act="nav" data-id="ship"><small>출고</small>出貨</button>
+  <button data-act="nav" data-id="stall"><small>가게</small>檔口</button>
+  <button data-act="nav" data-id="set"><small>설정</small>設定</button>
 </nav>
 
 <!-- 款式 -->
 <div class="mask" id="m-prod"><div class="sheet">
-  <h2><b id="pTitle">新增款式</b><span data-act="close" data-id="m-prod">✕</span></h2>
+  <h2><b id="pTitle">新增款式</b><span data-act="close" data-id="m-prod">關閉</span></h2>
   <label>商品編號</label>
   <div style="display:flex;gap:8px"><input id="pSku" placeholder="例如 NY-2611-001" style="text-transform:uppercase"><button class="btn line" type="button" data-act="genSku" style="white-space:nowrap">自動產生</button></div>
   <label>款式名稱 *</label><input id="pName">
@@ -164,7 +174,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
     <div><label>參考韓幣進價 <span class="muted">（選填）</span></label><input id="pKrw" type="number" inputmode="numeric" placeholder="25000"></div>
     <div><label>售價 NT$</label><input id="pNt" type="number" inputmode="numeric" placeholder="650"></div>
   </div>
-  <p class="muted" style="margin-top:6px">💡 每次實際進價請記在「叫貨」，成本會依每批實際價格平均計算。這裡只是叫貨時自動帶入的預設值，叫貨後會自動更新成最近一次的價格。</p>
+  <p class="muted" style="margin-top:6px">每次實際進價請記在「叫貨」，成本會依每批實際價格平均計算。這裡只是叫貨時自動帶入的預設值，叫貨後會自動更新成最近一次的價格。</p>
   <div class="box" id="pHist" style="margin:10px 0 0;background:var(--light);font-size:13px;display:none"></div>
   <label>圖片（≤5MB）</label><input type="file" id="pFile" accept="image/*">
   <input id="pImg" placeholder="或貼上圖片網址" style="margin-top:6px">
@@ -175,7 +185,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 
 <!-- 叫貨 -->
 <div class="mask" id="m-buy"><div class="sheet">
-  <h2><b id="bTitle">新增叫貨</b><span data-act="close" data-id="m-buy">✕</span></h2>
+  <h2><b id="bTitle">新增叫貨</b><span data-act="close" data-id="m-buy">關閉</span></h2>
   <div class="two">
     <div><label>日期</label><input id="bDate" type="date"></div>
     <div><label>檔口 *</label><select id="bStall"></select></div>
@@ -195,7 +205,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 
 <!-- 出貨 -->
 <div class="mask" id="m-ship"><div class="sheet">
-  <h2><b id="hTitle">新增出貨</b><span data-act="close" data-id="m-ship">✕</span></h2>
+  <h2><b id="hTitle">新增出貨</b><span data-act="close" data-id="m-ship">關閉</span></h2>
   <div class="two">
     <div><label>日期</label><input id="hDate" type="date"></div>
     <div><label>平台</label><select id="hPlat"></select></div>
@@ -214,7 +224,7 @@ input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--bd);bo
 
 <!-- 檔口 -->
 <div class="mask" id="m-stall"><div class="sheet">
-  <h2><b id="tTitle">新增檔口</b><span data-act="close" data-id="m-stall">✕</span></h2>
+  <h2><b id="tTitle">新增檔口</b><span data-act="close" data-id="m-stall">關閉</span></h2>
   <label>檔口名稱 *</label><input id="tName" placeholder="例如：Nyunyu 3F 小熊屋">
   <div class="two">
     <div><label>編號代號 <span class="muted">（2～3 碼英文）</span></label><input id="tCode" placeholder="NY" maxlength="4" style="text-transform:uppercase"></div>
@@ -304,7 +314,7 @@ function renderStock(){
     const sold=ships.filter(h=>h.productId===p.id).reduce((a,h)=>a+sumQty(h),0);
     const ac=avgCost(p);
     const price=[krwRange(p),ac?'平均成本 '+nt(ac)+'/件':'',pNt(p)?'售 '+nt(pNt(p)):'',sold?'已賣 '+sold+' 件':''].filter(Boolean).join(' · ');
-    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info">${p.sku?`<div class="muted" style="font-weight:700;letter-spacing:.5px">${esc(p.sku)}</div>`:''}<b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">🏪 ${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
+    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info">${p.sku?`<div class="muted" style="font-weight:700;letter-spacing:.5px">${esc(p.sku)}</div>`:''}<b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
   }).join(''):`<div class="empty">${products.length?'找不到符合的款式':'還沒有款式，先新增一個吧'}</div>`;
 }
 function renderBuys(){
@@ -312,17 +322,17 @@ function renderBuys(){
   const pcs=ord.reduce((s,b)=>s+sumQty(b),0);
   const money=ord.reduce((s,b)=>s+sumQty(b)*num(b.krw),0);
   $('buyStats').innerHTML=`<div><b>${ord.length}</b><small>待到貨筆數</small></div><div><b>${pcs}</b><small>待到貨件數</small></div><div><b>${krw(money)}</b><small>待到貨金額</small></div>`;
-  $('buyPills').innerHTML=[['ordered','⏳ 已叫貨'],['arrived','✅ 已到貨'],['all','全部']].map(t=>`<button class="pill ${t[0]===buyFilter?'on':''}" data-act="buyFilter" data-id="${t[0]}">${t[1]}</button>`).join('');
+  $('buyPills').innerHTML=[['ordered','已叫貨'],['arrived','已到貨'],['all','全部']].map(t=>`<button class="pill ${t[0]===buyFilter?'on':''}" data-act="buyFilter" data-id="${t[0]}">${t[1]}</button>`).join('');
   const list=buys.filter(b=>buyFilter==='all'||(buyFilter==='arrived')===(b.status==='arrived'));
   $('buyList').innerHTML=list.length?list.map(b=>{
     const arrived=b.status==='arrived';
     const q=Object.entries(b.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
     return `<div class="box"><div class="row"><b>${skuOf(b.productId)?`<span class="muted">${esc(skuOf(b.productId))}</span> `:''}${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
-      <div class="row muted"><span>🏪 ${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
+      <div class="row muted"><span>${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span>${krw(sumQty(b)*num(b.krw))}</span></div>
       <div class="row muted"><span>匯率 ${rateOf(b)}${num(b.extraNt)?'・運費等 '+nt(b.extraNt):''}</span><span>成本 ${nt(unitCost(b))}/件・共 ${nt(unitCost(b)*sumQty(b))}</span></div>
-      ${b.note?`<div class="muted">📝 ${esc(b.note)}</div>`:''}
-      <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">↩️ 改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">✅ 到貨入庫</button>`}</div></div>`;
+      ${b.note?`<div class="muted">備註：${esc(b.note)}</div>`:''}
+      <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">到貨入庫</button>`}</div></div>`;
   }).join(''):'<div class="empty">沒有紀錄</div>';
 }
 function renderShips(){
@@ -335,10 +345,10 @@ function renderShips(){
   $('shipList').innerHTML=list.length?list.map(h=>{
     const q=Object.entries(h.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
     return `<div class="box" data-act="editShip" data-id="${h.id}" style="cursor:pointer"><div class="row"><b>${skuOf(h.productId)?`<span class="muted">${esc(skuOf(h.productId))}</span> `:''}${esc(h.productName)}</b><span class="tag">${esc(h.platform||'其他')}</span></div>
-      <div class="row muted"><span>👤 ${esc(h.buyer||'未填買家')}${h.orderNo?'・#'+esc(h.orderNo):''}</span><span>${esc(h.date)}</span></div>
+      <div class="row muted"><span>${esc(h.buyer||'未填買家')}${h.orderNo?'・#'+esc(h.orderNo):''}</span><span>${esc(h.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span class="price" style="color:var(--ok);font-weight:700">${nt(sumQty(h)*num(h.nt))}</span></div>
       <div class="row muted"><span>成本 ${nt(shipCost(h))}/件</span><span style="color:${profit(h)>=0?'var(--ok)':'var(--warn)'}">毛利 ${nt(profit(h))}</span></div>
-      ${h.note?`<div class="muted">📝 ${esc(h.note)}</div>`:''}</div>`;
+      ${h.note?`<div class="muted">備註：${esc(h.note)}</div>`:''}</div>`;
   }).join(''):'<div class="empty">沒有出貨紀錄</div>';
 }
 function renderStalls(){
@@ -348,9 +358,9 @@ function renderStalls(){
     const mine=buys.filter(b=>b.stallId===s.id);
     const pending=mine.filter(b=>b.status!=='arrived').reduce((a,b)=>a+sumQty(b),0);
     const spent=mine.reduce((a,b)=>a+sumQty(b)*num(b.krw),0);
-    return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15px">🏪 ${esc(s.name)}${s.code?` <span class="tag">${esc(s.code)}</span>`:''}</b><span class="muted">${esc(s.loc||'')}</span></div>
+    return `<div class="box" data-act="editStall" data-id="${s.id}" style="cursor:pointer"><div class="row"><b style="font-size:15.5px;font-family:'Noto Serif TC',serif;letter-spacing:.04em">${esc(s.name)}${s.code?` <span class="tag">${esc(s.code)}</span>`:''}</b><span class="muted">${esc(s.loc||'')}</span></div>
       ${(s.ages||[]).length?`<div style="margin:4px 0">${s.ages.map(a=>`<span class="age ${AGE_CLS[a]||''}">${esc(a)}</span>`).join('')}</div>`:''}
-      ${s.contact?`<div class="muted">📱 ${esc(s.contact)}</div>`:''}${lookLinks(s)}${s.note?`<div class="muted">📝 ${esc(s.note)}</div>`:''}
+      ${s.contact?`<div class="muted">聯絡 ${esc(s.contact)}</div>`:''}${lookLinks(s)}${s.note?`<div class="muted">備註：${esc(s.note)}</div>`:''}
       <div class="row" style="margin-top:6px"><span>款式 ${products.filter(p=>p.stallId===s.id).length}・叫貨 ${mine.length} 筆・待到 ${pending} 件</span><b>${krw(spent)}</b></div></div>`;
   }).join(''):`<div class="empty">${stalls.length?'沒有標記「'+esc(ageFilter)+'」的檔口':'還沒有檔口，先新增一個吧'}</div>`;
 }
@@ -373,10 +383,10 @@ function mapQuery(s){
 function lookLinks(s){
   const a=[];
   const mq=mapQuery(s);
-  if(mq)a.push(`<a class="look" href="https://map.naver.com/p/search/${encodeURIComponent(mq)}" target="_blank" rel="noopener">🗺️ 地圖</a>`);
-  if(s.story)a.push(`<a class="look" href="${esc(toUrl(s.story,'https://story.kakao.com/'))}" target="_blank" rel="noopener">📖 KakaoStory</a>`);
-  if(s.ig)a.push(`<a class="look" href="${esc(toUrl(s.ig,'https://www.instagram.com/'))}" target="_blank" rel="noopener">📷 IG</a>`);
-  if(s.web)a.push(`<a class="look" href="${esc(/^https?:\/\//i.test(s.web)?s.web:'https://'+s.web)}" target="_blank" rel="noopener">🔗 網站</a>`);
+  if(mq)a.push(`<a class="look" href="https://map.naver.com/p/search/${encodeURIComponent(mq)}" target="_blank" rel="noopener">NAVER 地圖 →</a>`);
+  if(s.story)a.push(`<a class="look" href="${esc(toUrl(s.story,'https://story.kakao.com/'))}" target="_blank" rel="noopener">KakaoStory →</a>`);
+  if(s.ig)a.push(`<a class="look" href="${esc(toUrl(s.ig,'https://www.instagram.com/'))}" target="_blank" rel="noopener">IG →</a>`);
+  if(s.web)a.push(`<a class="look" href="${esc(/^https?:\/\//i.test(s.web)?s.web:'https://'+s.web)}" target="_blank" rel="noopener">網站 →</a>`);
   return a.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">${a.join('')}</div>`:'';
 }
 const skuOf=id=>(products.find(p=>p.id===id)||{}).sku||'';
@@ -444,7 +454,7 @@ const ACT={
       const data={sku,name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim()};
       if(editId)await db.collection('kids_products').doc(editId).update(data);
       else await db.collection('kids_products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
-      ACT.close('m-prod');toast('✅ 已儲存');
+      ACT.close('m-prod');toast('已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
   async delProd(){
@@ -475,7 +485,7 @@ const ACT={
       const latest=priceHist(p.id).filter(b=>b.id!==editId)[0];
       if(data.krw&&(!latest||String(data.date)>=String(latest.date)))upd.krw=data.krw;
       if(Object.keys(upd).length)db.collection('kids_products').doc(p.id).update(upd).catch(()=>{});
-      ACT.close('m-buy');toast('✅ 已儲存');
+      ACT.close('m-buy');toast('已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
   async delBuy(){
@@ -489,7 +499,7 @@ const ACT={
     const b=buys.find(x=>x.id===id);if(!b)return;
     if(!products.some(p=>p.id===b.productId))return toast('這個款式已被刪除，無法入庫');
     const batch=db.batch();batch.update(db.collection('kids_purchases').doc(id),{status:'arrived',arrivedAtMs:Date.now()});moveStock(batch,b,1);
-    await commit(batch,'✅ 已入庫 '+sumQty(b)+' 件');
+    await commit(batch,'已入庫 '+sumQty(b)+' 件');
   },
   async unarrive(id){
     const b=buys.find(x=>x.id===id);if(!b||!confirm('改回未到貨？會從庫存扣回這些數量'))return;
@@ -516,7 +526,7 @@ const ACT={
     if(old){batch.update(db.collection('kids_purchases').doc(old.id),data);moveStock(batch,old,1)}
     else batch.set(db.collection('kids_purchases').doc(),{...data,createdAtMs:Date.now()});
     moveStock(batch,data,-1);
-    ACT.close('m-ship');await commit(batch,'✅ 已出貨，庫存已扣除');
+    ACT.close('m-ship');await commit(batch,'已出貨，庫存已扣除');
   },
   async delShip(){
     const h=ships.find(x=>x.id===editId);if(!h||!confirm('刪除這筆出貨紀錄？庫存會加回去'))return;
@@ -532,7 +542,7 @@ const ACT={
     try{
       if(editId)await db.collection('kids_stalls').doc(editId).update(data);
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
-      ACT.close('m-stall');toast('✅ 已儲存');
+      ACT.close('m-stall');toast('已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
   },
   async delStall(){
@@ -544,7 +554,7 @@ const ACT={
   // 設定
   async saveSettings(){
     const rate=parseFloat($('sRate').value);if(!(rate>0))return toast('請輸入有效匯率');
-    await db.collection('kids_settings').doc('site').set({rate},{merge:true});toast('✅ 匯率已更新');
+    await db.collection('kids_settings').doc('site').set({rate},{merge:true});toast('匯率已更新');
   },
   async recalc(){
     if(!confirm('依「已到貨的叫貨 − 出貨紀錄」重新計算所有庫存？\n手動用 +／− 調整過的數量會被覆蓋。'))return;
@@ -555,7 +565,7 @@ const ACT={
       ships.filter(h=>h.productId===p.id).forEach(h=>Object.entries(h.qty||{}).forEach(([u,n])=>stock[u]=num(stock[u])-num(n)));
       batch.update(db.collection('kids_products').doc(p.id),{stock});
     });
-    await commit(batch,'✅ 庫存已重新計算');
+    await commit(batch,'庫存已重新計算');
   },
   exportStock(){
     const rows=[['編號','款式','分類','檔口','尺寸','庫存','最近韓幣進價','售價NT$']];
@@ -600,7 +610,7 @@ function fillProd(p){
   const h=p.id?priceHist(p.id):[];
   if(h.length){
     const ac=avgCost(p);
-    $('pHist').innerHTML=`<b>📈 進價紀錄</b>${h.slice(0,5).map(b=>`<div class="row"><span>${esc(b.date)}・${esc(stallName(b.stallId))}</span><span>${krw(b.krw)}　<span class="muted">${nt(unitCost(b))}/件</span></span></div>`).join('')}${h.length>5?`<div class="muted">…還有 ${h.length-5} 筆</div>`:''}<div class="row" style="margin-top:6px;border-top:1px solid var(--bd);padding-top:6px"><span>平均成本 <b>${nt(ac)}</b></span><span class="muted">${suggest(ac)}</span></div>`;
+    $('pHist').innerHTML=`<b>進價紀錄</b>${h.slice(0,5).map(b=>`<div class="row"><span>${esc(b.date)}・${esc(stallName(b.stallId))}</span><span>${krw(b.krw)}　<span class="muted">${nt(unitCost(b))}/件</span></span></div>`).join('')}${h.length>5?`<div class="muted">…還有 ${h.length-5} 筆</div>`:''}<div class="row" style="margin-top:6px;border-top:1px solid var(--bd);padding-top:6px"><span>平均成本 <b>${nt(ac)}</b></span><span class="muted">${suggest(ac)}</span></div>`;
     $('pHist').style.display='';
   }else $('pHist').style.display='none';
   $('pDel').style.display=editId?'':'none';open('m-prod');
