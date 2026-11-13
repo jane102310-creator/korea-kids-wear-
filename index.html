@@ -82,6 +82,27 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .age.big{background:#e2e7ea;color:#56687a}.age.acc{background:var(--light);color:var(--sub)}
 .look{display:inline-block;font-size:11.5px;color:var(--acc-d);text-decoration:none;border-bottom:1px solid var(--bd);letter-spacing:.03em;margin-right:4px}
 #login{max-width:360px;margin:12vh auto 0;padding:24px 20px}
+summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:none}
+.rs{border-color:#d9c9ae}
+.rs summary{display:flex;justify-content:space-between;align-items:center;font-family:"Noto Serif TC",serif;font-weight:600;letter-spacing:.05em}
+.rs summary small{font-family:"Noto Sans TC",sans-serif;font-weight:400;font-size:11px;color:var(--warn);letter-spacing:.1em}
+.rs summary small:after{content:" ▾";color:var(--sub)}.rs[open] summary small:after{content:" ▴"}
+.rs-g{font-size:11px;letter-spacing:.2em;color:var(--sub);margin:14px 0 2px;padding-bottom:4px;border-bottom:1px solid var(--ink)}
+.rs-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)}
+.rs-row:last-child{border:0}
+.rs-row b{font-size:14px;font-weight:600}
+.rs-l{font-size:12.5px;color:var(--sub);margin-top:3px}
+.rs-l em{font-style:normal;color:var(--warn)}.rs-l b{font-size:12.5px;color:var(--acc-d)}
+.rs-sz{display:inline-block;min-width:34px;font-size:10.5px;background:var(--sand);color:var(--acc-d);border-radius:2px;text-align:center;margin-right:6px}
+.szinfo{margin-top:10px;border-top:1px solid var(--bd);padding-top:8px}
+.szinfo summary{font-size:12px;color:var(--acc-d);letter-spacing:.05em}
+.szinfo summary:after{content:" ▾";color:var(--sub)}.szinfo[open] summary:after{content:" ▴"}
+.szinfo table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+.szinfo td,.szinfo th{padding:5px 2px;border-bottom:1px solid var(--bd);text-align:left;font-weight:400}
+.szinfo th{color:var(--sub);font-size:11px;letter-spacing:.1em}
+.st-h,.st-r{display:grid;grid-template-columns:56px 1fr 1fr;gap:6px;align-items:center}
+.st-h{font-size:11px;color:var(--sub);letter-spacing:.05em;margin-bottom:4px}
+.st-r{margin-bottom:6px}.st-r span{font-size:13px;background:var(--sand);text-align:center;border-radius:2px;padding:7px 0;color:var(--acc-d)}
 </style>
 </head>
 <body>
@@ -101,6 +122,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
   <!-- 庫存 -->
   <div id="s-stock" class="sec on">
     <div class="stats" id="stockStats"></div>
+    <div id="restock"></div>
     <input id="q" placeholder="搜尋編號或款式名稱" style="margin-bottom:10px">
     <div class="pills" id="stallPills"></div>
     <button class="btn big add" style="margin:0 0 12px" data-act="newProd">＋ 新增款式</button>
@@ -138,6 +160,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
       <button class="btn big" data-act="saveSettings">儲存匯率</button>
     </div>
     <div class="box">
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">補貨提醒</b>
+      <p class="muted" style="margin-top:4px">依近 30 天（較少出貨時看近 60 天）的出貨速度推算。庫存＋未到貨撐不到「提醒天數」就列出來，建議數量會補到「備貨天數」。</p>
+      <div class="two">
+        <div><label>提醒天數</label><input id="sAlert" type="number" inputmode="numeric" placeholder="14"></div>
+        <div><label>備貨天數</label><input id="sCover" type="number" inputmode="numeric" placeholder="30"></div>
+      </div>
+      <button class="btn big" data-act="saveRestock">儲存補貨設定</button>
+    </div>
+    <div class="box">
       <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">匯出資料</b>
       <button class="btn big line" data-act="exportStock">匯出庫存 CSV</button>
       <button class="btn big line" data-act="exportBuy">匯出叫貨紀錄 CSV</button>
@@ -170,6 +201,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
     <div><label>常用檔口</label><select id="pStall"></select></div>
   </div>
   <label>尺寸（逗號隔開）</label><input id="pUnits" value="90,100,110,120,130">
+  <label>尺寸表 <span class="muted">（建議身高／體重，可只填一部分）</span></label>
+  <div id="pSizeTbl"></div>
+  <div class="two">
+    <div><label>版型</label><select id="pFit"><option value="">未填</option><option>正常</option><option>偏大</option><option>偏小</option></select></div>
+    <div><label>尺寸補充</label><input id="pFitNote" placeholder="例如：建議買大一號"></div>
+  </div>
   <div class="two">
     <div><label>參考韓幣進價 <span class="muted">（選填）</span></label><input id="pKrw" type="number" inputmode="numeric" placeholder="25000"></div>
     <div><label>售價 NT$</label><input id="pNt" type="number" inputmode="numeric" placeholder="650"></div>
@@ -295,7 +332,7 @@ auth.onAuthStateChanged(u=>{
     db.collection('kids_products').onSnapshot(s=>{products=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
     db.collection('kids_stalls').onSnapshot(s=>{stalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));render()},err),
     db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));buys=all.filter(x=>x.type!=='ship');ships=all.filter(x=>x.type==='ship');render()},err),
-    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate},err)
+    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock()},err)
   );
 });
 
@@ -306,6 +343,7 @@ function renderStock(){
   const total=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0),0);
   const value=products.reduce((s,p)=>s+Math.max(0,(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0))*avgCost(p),0);
   const out=products.filter(p=>(p.units||[]).some(u=>stockOf(p,u)<=0)).length;
+  renderRestock();
   $('stockStats').innerHTML=`<div><b>${total}</b><small>庫存件數</small></div><div><b>${nt(value)}</b><small>庫存成本</small></div><div><b style="color:var(--warn)">${out}</b><small>有尺寸缺貨</small></div>`;
   $('stallPills').innerHTML=['全部',...stalls.map(s=>s.id)].map(id=>`<button class="pill ${id===stallFilter?'on':''}" data-act="stallFilter" data-id="${esc(id)}">${esc(id==='全部'?'全部檔口':stallName(id))}</button>`).join('');
   const list=products.filter(p=>(stallFilter==='全部'||p.stallId===stallFilter)&&(!kw||[p.sku,p.name].some(v=>String(v||'').toLowerCase().includes(kw))));
@@ -314,7 +352,7 @@ function renderStock(){
     const sold=ships.filter(h=>h.productId===p.id).reduce((a,h)=>a+sumQty(h),0);
     const ac=avgCost(p);
     const price=[krwRange(p),ac?'平均成本 '+nt(ac)+'/件':'',pNt(p)?'售 '+nt(pNt(p)):'',sold?'已賣 '+sold+' 件':''].filter(Boolean).join(' · ');
-    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info">${p.sku?`<div class="muted" style="font-weight:700;letter-spacing:.5px">${esc(p.sku)}</div>`:''}<b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div></div>`;
+    return `<div class="box"><div class="prod" data-act="editProd" data-id="${p.id}"><img src="${esc(p.image||ph)}" alt="" loading="lazy"><div class="info">${p.sku?`<div class="muted" style="font-weight:700;letter-spacing:.5px">${esc(p.sku)}</div>`:''}<b>${esc(p.name)}</b><div style="margin:4px 0"><span class="tag">${esc(p.category||'未分類')}</span><span class="tag">${esc(stallName(p.stallId))}</span></div><div class="muted">${esc(price)}${p.note?' ・ '+esc(p.note):''}</div></div></div><div class="sizes">${sizes}</div>${sizeDetails(p)}</div>`;
   }).join(''):`<div class="empty">${products.length?'找不到符合的款式':'還沒有款式，先新增一個吧'}</div>`;
 }
 function renderBuys(){
@@ -451,7 +489,7 @@ const ACT={
       }
       const sku=$('pSku').value.trim().toUpperCase();
       if(sku&&products.some(x=>x.id!==editId&&String(x.sku||'').toUpperCase()===sku))return toast('編號 '+sku+' 已經有其他款式使用');
-      const data={sku,name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim()};
+      const data={sku,name,category:$('pCat').value,stallId:$('pStall').value,units,krw:num($('pKrw').value),nt:num($('pNt').value),image,note:$('pNote').value.trim(),sizeInfo:Object.fromEntries(Object.entries(readSizeInfo()).filter(([u])=>units.includes(u))),fit:$('pFit').value,fitNote:$('pFitNote').value.trim()};
       if(editId)await db.collection('kids_products').doc(editId).update(data);
       else await db.collection('kids_products').add({...data,stock:{},createdAt:FV.serverTimestamp()});
       ACT.close('m-prod');toast('已儲存');
@@ -552,6 +590,22 @@ const ACT={
     ACT.close('m-stall');toast('已刪除');
   },
   // 設定
+  async saveRestock(){
+    const a=parseInt($('sAlert').value)||14,c=parseInt($('sCover').value)||30;
+    if(c<a)return toast('備貨天數要大於等於提醒天數');
+    await db.collection('kids_settings').doc('site').set({rsAlert:a,rsCover:c},{merge:true});toast('補貨設定已更新');
+  },
+  restockBuy(id){
+    const p=products.find(x=>x.id===id);if(!p)return;
+    const qty={};restockList().filter(r=>r.p.id===id).forEach(r=>qty[r.u]=r.want);
+    editId=null;fillBuy({date:today(),status:'ordered',productId:id,stallId:p.stallId||'',qty,krw:lastKrw(p)});
+  },
+  copySize(id){
+    const p=products.find(x=>x.id===id);if(!p)return;
+    const t=sizeText(p);
+    const done=()=>toast('尺寸說明已複製');
+    if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,()=>fallbackCopy(t,done));else fallbackCopy(t,done);
+  },
   async saveSettings(){
     const rate=parseFloat($('sRate').value);if(!(rate>0))return toast('請輸入有效匯率');
     await db.collection('kids_settings').doc('site').set({rate},{merge:true});toast('匯率已更新');
@@ -568,8 +622,8 @@ const ACT={
     await commit(batch,'庫存已重新計算');
   },
   exportStock(){
-    const rows=[['編號','款式','分類','檔口','尺寸','庫存','最近韓幣進價','售價NT$']];
-    products.forEach(p=>(p.units||[]).forEach(u=>rows.push([p.sku||'',p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p)])));
+    const rows=[['編號','款式','分類','檔口','尺寸','庫存','最近韓幣進價','售價NT$','建議身高cm','建議體重kg','版型']];
+    products.forEach(p=>(p.units||[]).forEach(u=>{const z=(p.sizeInfo||{})[u]||{};rows.push([p.sku||'',p.name,p.category,stallName(p.stallId),u,stockOf(p,u),pKrw(p),pNt(p),z.h||'',z.w||'',p.fit||''])}));
     csv(rows,'庫存');
   },
   exportShip(){
@@ -596,6 +650,71 @@ function csv(rows,name){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8;'}));
   a.download=name+'_'+today()+'.csv';a.click();
 }
+// ===== 補貨提醒 =====
+const dstr=ms=>new Date(ms-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+let rsOpen=true;
+function restockList(){
+  const A=num(settings.rsAlert)||14,C=num(settings.rsCover)||30;
+  const c30=dstr(Date.now()-30*864e5),c60=dstr(Date.now()-60*864e5);
+  const out=[];
+  products.forEach(p=>{
+    const sh=ships.filter(h=>h.productId===p.id&&String(h.date)>=c60);
+    if(!sh.length)return;
+    (p.units||[]).forEach(u=>{
+      const s60=sh.reduce((a,h)=>a+num((h.qty||{})[u]),0);if(!s60)return;
+      const s30=sh.filter(h=>String(h.date)>=c30).reduce((a,h)=>a+num((h.qty||{})[u]),0);
+      const stock=stockOf(p,u);
+      const pend=buys.filter(b=>b.productId===p.id&&b.status!=='arrived').reduce((a,b)=>a+num((b.qty||{})[u]),0);
+      const have=Math.max(0,stock)+pend;
+      const perDay=Math.max(s30,s60/2)/30;
+      const days=have/perDay;
+      if(have>0&&days>=A)return;
+      out.push({p,u,stock,pend,s30,s60,days,want:Math.max(1,Math.ceil(perDay*C-have))});
+    });
+  });
+  return out;
+}
+function renderRestock(){
+  const list=restockList();
+  if(!list.length){$('restock').innerHTML='';return}
+  const byStall={};
+  list.forEach(r=>{const k=r.p.stallId||'';(byStall[k]=byStall[k]||{});(byStall[k][r.p.id]=byStall[k][r.p.id]||[]).push(r)});
+  const total=list.reduce((a,r)=>a+r.want,0);
+  $('restock').innerHTML=`<details class="box rs" id="rsBox" ${rsOpen?'open':''}><summary><span>補貨提醒</span><small>${list.length} 個尺寸・建議叫 ${total} 件</small></summary>`+
+    Object.entries(byStall).map(([sid,prods])=>`<div class="rs-g">${esc(stallName(sid))}</div>`+Object.values(prods).map(rows=>{
+      const p=rows[0].p;
+      return `<div class="rs-row"><div style="min-width:0"><b>${p.sku?`<span class="muted">${esc(p.sku)}</span> `:''}${esc(p.name)}</b>${rows.map(r=>`<div class="rs-l"><span class="rs-sz">${esc(r.u)}</span>${r.stock<=0?'<em>缺貨</em>':`剩 ${r.stock}`}${r.pend?`・在途 ${r.pend}`:''}・近${r.s30?'30':'60'}天賣 ${r.s30||r.s60}${r.stock>0||r.pend?`・約撐 ${Math.floor(r.days)} 天`:''}　<b>建議 ${r.want} 件</b></div>`).join('')}</div><button class="btn sm" data-act="restockBuy" data-id="${p.id}" style="flex-shrink:0">叫貨</button></div>`;
+    }).join('')).join('')+`</details>`;
+}
+document.addEventListener('toggle',e=>{if(e.target.id==='rsBox')rsOpen=e.target.open},true);
+// ===== 尺寸表 =====
+function readSizeInfo(){
+  const o={};
+  document.querySelectorAll('#pSizeTbl .st-r').forEach(r=>{const h=r.querySelector('[data-k=h]').value.trim(),w=r.querySelector('[data-k=w]').value.trim();if(h||w)o[r.dataset.u]={h,w}});
+  return o;
+}
+function sizeRows(info){
+  const units=[...new Set($('pUnits').value.split(/[,，、\s]+/).map(s=>s.trim()).filter(Boolean))];
+  const src={...info,...readSizeInfo()};
+  $('pSizeTbl').innerHTML=units.length?`<div class="st-h"><span style="text-align:center">尺寸</span><span>身高 cm</span><span>體重 kg</span></div>`+units.map(u=>{const z=src[u]||{};return `<div class="st-r" data-u="${esc(u)}"><span>${esc(u)}</span><input data-k="h" value="${esc(z.h||'')}" placeholder="例 85-95"><input data-k="w" value="${esc(z.w||'')}" placeholder="例 12-14"></div>`}).join(''):'<span class="muted">先填尺寸</span>';
+}
+$('pUnits').addEventListener('input',()=>sizeRows({}));
+const hasSize=p=>Object.values(p.sizeInfo||{}).some(z=>z&&(z.h||z.w));
+function sizeDetails(p){
+  if(!hasSize(p)&&!p.fit&&!p.fitNote)return '';
+  const fit=[p.fit?'版型'+p.fit:'',p.fitNote].filter(Boolean).join('・');
+  const rows=(p.units||[]).filter(u=>{const z=(p.sizeInfo||{})[u];return z&&(z.h||z.w)});
+  return `<details class="szinfo"><summary>尺寸表${fit?'・'+esc(fit):''}</summary>${rows.length?`<table><tr><th>尺寸</th><th>身高 cm</th><th>體重 kg</th></tr>${rows.map(u=>{const z=p.sizeInfo[u];return `<tr><td>${esc(u)}</td><td>${esc(z.h||'—')}</td><td>${esc(z.w||'—')}</td></tr>`}).join('')}</table>`:''}<div style="text-align:right;margin-top:8px"><button class="btn line sm" data-act="copySize" data-id="${p.id}">複製尺寸說明</button></div></details>`;
+}
+function sizeText(p){
+  const rows=(p.units||[]).filter(u=>{const z=(p.sizeInfo||{})[u];return z&&(z.h||z.w)}).map(u=>{const z=p.sizeInfo[u];return `${u}：`+[z.h?`身高 ${z.h} cm`:'',z.w?`體重 ${z.w} kg`:''].filter(Boolean).join('／')});
+  const fit=p.fit&&p.fit!=='正常'?`這款版型${p.fit}`:p.fit==='正常'?'這款版型正常':'';
+  return [`【${p.name} 尺寸參考】`,...rows,[fit,p.fitNote].filter(Boolean).join('，'),'※ 尺寸僅供參考，可能有 1–2 cm 誤差'].filter(Boolean).join('\n');
+}
+function fallbackCopy(t,done){
+  const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();
+  try{document.execCommand('copy');done()}catch(e){toast('複製失敗')}a.remove();
+}
 let autoSku='';
 function fillProd(p){
   autoSku=editId?'':nextSku(p.stallId||'');
@@ -607,6 +726,7 @@ function fillProd(p){
   $('pUnits').value=(p.units||['90','100','110','120','130']).join(',');
   $('pKrw').value=pKrw(p)||'';$('pNt').value=pNt(p)||'';
   $('pImg').value=p.image||'';$('pFile').value='';$('pNote').value=p.note||'';
+  $('pSizeTbl').innerHTML='';sizeRows(p.sizeInfo||{});$('pFit').value=p.fit||'';$('pFitNote').value=p.fitNote||'';
   const h=p.id?priceHist(p.id):[];
   if(h.length){
     const ac=avgCost(p);
