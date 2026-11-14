@@ -96,6 +96,14 @@ textarea{line-height:1.5;resize:vertical}
 .calc summary:after{content:" ▾";color:var(--sub)}.calc[open] summary:after{content:" ▴"}
 .calc-out{font-size:12.5px;color:var(--acc-d);margin:10px 0 4px;line-height:1.7}
 .fw{cursor:pointer}
+.tk{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer}
+#tkList .tk:first-child{margin-top:8px;border-top:1px solid var(--bd)}#tkList .tk:last-child{border-bottom:0}
+.tk .bx{flex:0 0 18px;height:18px;margin-top:3px;border:1px solid var(--acc);border-radius:2px;background:#fff;display:grid;place-items:center;color:#fff;font-size:11px}
+.tk.on .bx{background:var(--acc-d);border-color:var(--acc-d)}
+.tk .tx{flex:1;min-width:0;font-size:14px}.tk.on .tx>span{color:var(--sub);text-decoration:line-through}
+.tk .tx small{display:block;font-size:11.5px;color:var(--sub)}.tk .tx small.due{color:var(--warn)}
+.tk .del{color:var(--sub);font-size:16px;padding:0 4px}
+nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:3px;vertical-align:2px}
 .cmp{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13.5px}.cmp:last-child{border:0}.cmp b{font-family:"Gowun Batang",serif;color:var(--acc-d)}.cmp .muted{font-size:11.5px}
 .cmp.best b{color:var(--ok)}
 .fw b{font-family:"Noto Serif TC",serif;font-weight:600;letter-spacing:.04em}
@@ -174,6 +182,15 @@ textarea{line-height:1.5;resize:vertical}
 
   <!-- 貨運行 -->
   <div id="s-fw" class="sec">
+    <div class="box">
+      <div class="row" style="margin:0"><b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em;font-size:15px">例行小清單</b><span class="muted" id="tkSum"></span></div>
+      <div id="tkList"></div>
+      <form id="tkForm" style="display:flex;gap:6px;margin-top:10px">
+        <input id="tkT" placeholder="例如：確認貨運行費用" style="flex:1;min-width:0">
+        <select id="tkD" style="flex:0 0 104px"></select>
+        <button class="btn sm" style="flex:0 0 auto">新增</button>
+      </form>
+    </div>
     <div class="box">
       <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">運費比價</b>
       <p class="muted" style="margin-top:4px">輸入重量，把每家的寄送方式從便宜排到貴。</p>
@@ -709,6 +726,14 @@ const ACT={
     const arr=fwList().filter((_,i)=>i!==fwEdit);
     await db.collection('kids_settings').doc('site').set({forwarders:arr},{merge:true});ACT.close('m-fw');toast('已刪除');
   },
+  tkToggle(i,_,t){
+    const arr=tkList().map(x=>({...x}));const x=arr[+i];if(!x)return;
+    x.last=tkState(x).done?'':today();saveTasks(arr);
+  },
+  tkDel(i){
+    const arr=tkList().slice();const x=arr[+i];if(!x||!confirm('刪除「'+x.t+'」？'))return;
+    arr.splice(+i,1);saveTasks(arr);
+  },
   applyFw(){
     const r=fwCalc();if(!r)return toast('先選貨運行、方式並填重量');
     $('bExtra').value=r.nt;fwUsed={id:r.f.id,name:r.f.name,m:r.m.n,kg:r.kg,krw:r.total};buyPreview();toast('已帶入運費 '+nt(r.nt));
@@ -862,12 +887,41 @@ const PRESETS={tn:TN_PRESET,lg:LG_PRESET};
 let fwEdit=-1,fwUsed=null;
 function renderFw(){
   const L=fwList();
-  renderCompare();
+  renderCompare();renderTasks();
   $('fwList').innerHTML=L.length?L.map((f,i)=>`<div class="box fw" data-act="editFw" data-id="${i}"><b>${esc(f.name)}</b>${f.contact?`<div class="muted">${esc(f.contact)}${f.hours?'・'+esc(f.hours):''}</div>`:''}
     <table>${(f.methods||[]).map(m=>`<tr><td>${esc(m.n)}</td><td>${krw(m.krw)}/kg</td><td>${esc(m.days||'')}</td></tr>`).join('')}</table>
     <div class="muted">${[f.minKg?f.minKg+' 公斤起寄':'',f.payFee?'代付代取 '+f.payFee+'%':''].filter(Boolean).join('・')}</div>
     ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}</div><div class="muted" style="text-align:right;margin-top:6px">點這裡編輯 →</div></div>`).join(''):'<div class="empty">還沒有貨運行，按上面新增；可以從 TN 物流、LINK GO 範本帶入</div>';
 }
+// ===== 例行小清單 =====
+const TK_DEFAULT=[{id:'tk1',t:'確認貨運行費用有沒有調整（TN 物流、LINK GO）',day:1,last:''}];
+const tkList=()=>Array.isArray(settings.fwTasks)?settings.fwTasks:TK_DEFAULT;
+const pad=n=>String(n).padStart(2,'0');
+function tkState(x){
+  if(!x.day)return {done:!!x.last,due:!x.last,label:x.last?'已完成 '+x.last.slice(5).replace('-','/'):'單次'};
+  const t=today(),y=+t.slice(0,4),m=+t.slice(5,7),d=+t.slice(8,10);
+  const nm=m===12?1:m+1;
+  if(d>=x.day){
+    const done=!!x.last&&x.last>=`${y}-${pad(m)}-${pad(x.day)}`;
+    return {done,due:!done,label:done?`本月已完成（${x.last.slice(5).replace('-','/')}）・下次 ${nm}/${x.day}`:`該做了・每月 ${x.day} 號`};
+  }
+  let py=y,pm=m-1;if(!pm){pm=12;py--}
+  const done=!!x.last&&x.last>=`${py}-${pad(pm)}-${pad(x.day)}`;
+  return {done,due:false,label:`${done?'已完成（'+x.last.slice(5).replace('-','/')+'）・':''}下次 ${m}/${x.day}`};
+}
+function renderTasks(){
+  const L=tkList();let due=0;
+  $('tkList').innerHTML=L.length?L.map((x,i)=>{const s=tkState(x);if(s.due)due++;
+    return `<div class="tk ${s.done?'on':''}" data-act="tkToggle" data-id="${i}"><div class="bx">${s.done?'✓':''}</div><div class="tx"><span>${esc(x.t)}</span><small class="${s.due?'due':''}">${esc(s.label)}</small></div><span class="del" data-act="tkDel" data-id="${i}">×</span></div>`}).join(''):'<div class="muted" style="margin-top:8px">還沒有項目</div>';
+  $('tkSum').textContent=due?`待辦 ${due} 項`:'都完成了';
+  const nb=document.querySelector('nav [data-id=fw]');if(nb)nb.innerHTML=`<small>배송</small>貨運行${due?'<i class="dot"></i>':''}`;
+}
+async function saveTasks(arr){
+  try{await db.collection('kids_settings').doc('site').set({fwTasks:arr},{merge:true})}catch(e){toast('儲存失敗：'+e.message)}
+}
+$('tkD').innerHTML=Array.from({length:28},(_,i)=>`<option value="${i+1}">每月 ${i+1} 號</option>`).join('')+'<option value="0">不重複</option>';
+$('tkForm').addEventListener('submit',e=>{e.preventDefault();const t=$('tkT').value.trim();if(!t)return toast('請輸入項目');
+  saveTasks([...tkList(),{id:'tk'+Date.now().toString(36),t,day:+$('tkD').value,last:''}]);$('tkT').value='';});
 function renderCompare(){
   const kg=parseFloat($('cmpKg').value)||0,tax=$('cmpTax').value,cat=$('cmpCat').value;
   if(!kg){$('cmpOut').innerHTML='';return}
