@@ -303,7 +303,7 @@ textarea{line-height:1.5;resize:vertical}
 <!-- 檔口 -->
 <div class="mask" id="m-fw"><div class="sheet">
   <h2><b id="fTitle">新增貨運行</b><span data-act="close" data-id="m-fw">關閉</span></h2>
-  <button class="btn line sm" id="fPreset" data-act="fwPreset" style="margin-top:6px">帶入 東大門 TN 物流（2026/10/16 版價目）</button>
+  <div id="fPreset" style="margin-top:6px"><div class="muted">從範本帶入：</div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"><button class="btn line sm" data-act="fwPreset" data-id="tn">東大門 TN 物流（2026/10/16 版）</button><button class="btn line sm" data-act="fwPreset" data-id="lg">LINK GO（弘大）</button></div></div>
   <label>名稱 *</label><input id="fName" placeholder="例如：東大門 TN 物流">
   <div class="two">
     <div><label>聯絡方式</label><input id="fContact" placeholder="LINE 名稱或 ID"></div>
@@ -683,7 +683,7 @@ const ACT={
   },
   newFw(){fwEdit=-1;fillFw({})},
   editFw(i){fwEdit=+i;fillFw(fwList()[fwEdit]||{})},
-  fwPreset(){fillFw(TN_PRESET,true)},
+  fwPreset(id){fillFw(PRESETS[id]||{},true)},
   async saveFw(){
     const name=$('fName').value.trim();if(!name)return toast('請填寫貨運行名稱');
     const methods=$('fMethods').value.split('\n').map(l=>l.split(/[,，]/).map(x=>x.trim())).filter(a=>a[0]).map(a=>({n:a[0],krw:num(String(a[1]||'').replace(/[^\d.]/g,'')),days:a.slice(2).join('，')}));
@@ -843,6 +843,10 @@ const TN_PRESET={name:'東大門 TN 物流',contact:'LINE：東大門 TN 物流 
   methods:[{n:'轉機 包稅',krw:8150,days:'4-6 天'},{n:'轉機 不包稅',krw:6150,days:'4-6 天'},{n:'直航 包稅',krw:8950,days:'2-3 天'},{n:'直航 不包稅',krw:6950,days:'2-3 天'},{n:'海運 包稅',krw:6000,days:'10-14 天（不能寄食品）'},{n:'海運 不包稅',krw:4000,days:'10-14 天（不能寄食品）'}],
   note:'2026/10/16 起版本。空運、海運皆 10 公斤起寄，可累積再集運，不滿 10 公斤以 10 公斤計。免費提供厚紙箱、防水袋、泡泡紙；包裹代收、加固保護、倉儲免費。\n拆箱合包減重 ₩500/個、拆箱＋拍照 ₩1,000/個、拆箱＋錄影 ₩3,500/個。\n東大門代付代取 3%；其他網路代訂代付 5%（OLIVE YOUNG、10X10 0%）。\n時效以北部、海關不塞車為準，中南部多抓 1–2 天；平常不急建議寄轉機。'};
 const fwList=()=>Array.isArray(settings.forwarders)?settings.forwarders:[];
+const LG_PRESET={name:'LINK GO（弘大辦公室）',contact:'LINE 官方帳號：LINK GO',hours:'每天 11:00–18:00',minKg:5,payFee:0,
+  methods:[{n:'直飛 含稅・服飾/鞋包/雜貨',krw:7650,days:'3-4 工作日'},{n:'轉機 含稅・服飾/鞋包/雜貨',krw:7150,days:'5-6 工作日'},{n:'直飛 含稅・玩具',krw:9250,days:'3-4 工作日'},{n:'轉機 含稅・玩具',krw:8650,days:'5-6 工作日'},{n:'直飛 含稅・美妝',krw:7850,days:'3-4 工作日'},{n:'轉機 含稅・美妝',krw:7350,days:'5-6 工作日'},{n:'直飛 含稅・食品',krw:8250,days:'3-4 工作日'},{n:'轉機 含稅・食品',krw:7750,days:'5-6 工作日'},{n:'直飛 不含稅・全品項',krw:5850,days:'3-4 工作日'},{n:'轉機 不含稅・全品項',krw:5350,days:'5-6 工作日'},{n:'海運 不含稅・全品項',krw:3500,days:'3-4 週'}],
+  note:'價目為 5 公斤以上參考，5 公斤以下要看小包價格表；包裝後重量 0.3 進位，實際以出貨日公告為準。不含稅：稅金自己付給通關業者。（明星周邊：直飛 ₩7,250、轉機 ₩6,750）\n空運一箱未滿 6 公斤、海運 10 公斤以下，用全新箱子加 ₩2,500（NT$60）。海運 5 公斤起寄。\n倉儲：到貨日起免費 30 天，之後每天 ₩1,000（約 NT$25）；逾期 7 日仍未領取、未付款視同放棄。\n弘大辦公室代收自取（以箱計）：未滿 5 公斤 ₩5,000、5 公斤以上 ₩10,000。行李寄放：兩件不分大小 ₩5,000／天。\n流程：私訊索取集運地址 → 下單寄到倉庫，到貨會通知入庫 → 要寄回時申請集運並選方案 → 打包後告知費用，付款後出貨。\n付款：台幣只收轉帳；韓幣可現金或轉帳。'};
+const PRESETS={tn:TN_PRESET,lg:LG_PRESET};
 let fwEdit=-1,fwUsed=null;
 function renderFw(){
   const L=fwList();
@@ -865,6 +869,7 @@ function fillMethods(sel){
   const f=fwList().find(x=>x.id===$('cFw').value);
   $('cM').innerHTML=f?(f.methods||[]).map((m,i)=>`<option value="${i}" ${m.n===sel?'selected':''}>${esc(m.n)}・${krw(m.krw)}/kg</option>`).join(''):'';
   $('cPayLbl').textContent=f&&f.payFee?`東大門代付代取（貨款 ${f.payFee}%）`:'代付代取';
+  $('cPay').closest('label').style.display=f&&f.payFee?'inline-flex':'none';if(!(f&&f.payFee))$('cPay').checked=false;
 }
 function fillCalc(fw){
   fwUsed=fw||null;
@@ -884,8 +889,8 @@ function fwCalc(){
   const r=num($('bRate').value)||num(settings.rate)||41.5;const ntv=Math.round(total/r);
   const min=num(f.minKg);
   $('cOut').innerHTML=`運費 ${kg} kg × ${krw(m.krw)} ＝ ${krw(freight)}${pay?`<br>代付代取 ${f.payFee}% ＝ ${krw(pay)}`:''}${add?`<br>加值服務 ${krw(add)}`:''}<br><b>合計 ${krw(total)} ≈ ${nt(ntv)}</b>${m.days?`<span class="muted">・約 ${esc(m.days)}</span>`:''}`+
-    (min&&kg<min?`<div class="muted" style="margin-top:4px">未滿 ${min} 公斤：和其他包裹累積再寄就照實際重量；這批單獨寄會以 ${min} 公斤計（${krw(min*m.krw)}）</div>`:'')+
-    (/不包稅/.test(m.n)?'<div class="muted" style="margin-top:4px">不包稅：關稅另外算，到時記得加進運費欄</div>':'');
+    (min&&kg<min?`<div class="muted" style="margin-top:4px">未滿 ${min} 公斤，實際怎麼計費請看這家貨運行的備註（設定頁）</div>`:'')+
+    (/不包稅|不含稅/.test(m.n)?'<div class="muted" style="margin-top:4px">不包稅：關稅另外算，到時記得加進運費欄</div>':'');
   return {f,m,kg,total,nt:ntv};
 }
 let autoSku='';
