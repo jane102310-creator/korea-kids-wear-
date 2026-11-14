@@ -104,6 +104,11 @@ textarea{line-height:1.5;resize:vertical}
 .tk .tx small{display:block;font-size:11.5px;color:var(--sub)}.tk .tx small.due{color:var(--warn)}
 .tk .del{color:var(--sub);font-size:16px;padding:0 4px}
 nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:3px;vertical-align:2px}
+#lStats b{font-size:15px;white-space:nowrap}
+.led{margin-top:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.led b{font-family:"Gowun Batang",serif;font-size:17px;color:var(--acc-d)}.led b.low{color:var(--warn)}
+.lrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13.5px}
+.lrow .amt{font-family:"Gowun Batang",serif;white-space:nowrap}.lrow .amt.in{color:var(--ok)}.lrow .amt.out{color:var(--warn)}
 .cmp{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13.5px}.cmp:last-child{border:0}.cmp b{font-family:"Gowun Batang",serif;color:var(--acc-d)}.cmp .muted{font-size:11.5px}
 .cmp.best b{color:var(--ok)}
 .fw b{font-family:"Noto Serif TC",serif;font-weight:600;letter-spacing:.04em}
@@ -352,6 +357,21 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
   <textarea id="fNote" rows="4"></textarea>
   <button class="btn big" data-act="saveFw">儲存</button>
   <button class="btn big red" id="fDel" data-act="delFw">刪除此貨運行</button>
+</div></div>
+
+<div class="mask" id="m-led"><div class="sheet">
+  <h2><b id="lTitle">預付款紀錄</b><span data-act="close" data-id="m-led">關閉</span></h2>
+  <div class="stats" id="lStats" style="margin-top:12px"></div>
+  <div class="two">
+    <div><label>類型</label><select id="lType"><option value="in">儲值（匯款／現金）</option><option value="out">扣款（貨款、運費等）</option></select></div>
+    <div><label>日期</label><input id="lDate" type="date"></div>
+  </div>
+  <div class="two">
+    <div><label>金額 NT$</label><input id="lAmt" type="number" inputmode="numeric" placeholder="0"></div>
+    <div><label>說明</label><input id="lNote" placeholder="例如：11/20 那箱運費"></div>
+  </div>
+  <button class="btn big" data-act="ledAdd">新增這筆</button>
+  <div id="lList" style="margin-top:14px"></div>
 </div></div>
 
 <div class="mask" id="m-stall"><div class="sheet">
@@ -722,7 +742,7 @@ const ACT={
     const methods=$('fMethods').value.split('\n').map(l=>l.split(/[,，]/).map(x=>x.trim())).filter(a=>a[0]).map(a=>({n:a[0],krw:num(String(a[1]||'').replace(/[^\d.]/g,'')),days:a.slice(2).join('，')}));
     if(!methods.length)return toast('請至少填一種寄送方式（價格不知道可以先填 0）');
     const f={id:fwEdit>=0?fwList()[fwEdit].id:'fw'+Date.now().toString(36),name,contact:$('fContact').value.trim(),hours:$('fHours').value.trim(),minKg:num($('fMin').value),payFee:num($('fPay').value),methods,note:$('fNote').value.trim(),myCode:$('fCode').value.trim()};
-    const old=fwEdit>=0?fwList()[fwEdit]:null;if(old&&old.dutyNt)f.dutyNt=old.dutyNt;else if(fwPresetUsed&&fwPresetUsed.dutyNt)f.dutyNt=fwPresetUsed.dutyNt;
+    const old=fwEdit>=0?fwList()[fwEdit]:null;if(old)f.ledger=ledgerOf(old);if(old&&old.dutyNt)f.dutyNt=old.dutyNt;else if(fwPresetUsed&&fwPresetUsed.dutyNt)f.dutyNt=fwPresetUsed.dutyNt;
     const arr=fwList().slice();if(fwEdit>=0)arr[fwEdit]=f;else arr.push(f);
     const upd={forwarders:arr};if($('fMain').checked)upd.fwMain=f.id;else if(fwMainId()===f.id)upd.fwMain='';
     try{await db.collection('kids_settings').doc('site').set(upd,{merge:true});ACT.close('m-fw');toast('已儲存')}catch(e){toast('儲存失敗：'+e.message)}
@@ -731,6 +751,16 @@ const ACT={
     if(fwEdit<0||!confirm('確定刪除這家貨運行？以前叫貨紀錄上的名稱會保留'))return;
     const gone=fwList()[fwEdit];const arr=fwList().filter((_,i)=>i!==fwEdit);
     await db.collection('kids_settings').doc('site').set({forwarders:arr,fwRemoved:[...(settings.fwRemoved||[]),gone.id]},{merge:true});ACT.close('m-fw');toast('已刪除');
+  },
+  ledOpen(i){ledIdx=+i;$('lType').value='out';$('lDate').value=today();$('lAmt').value='';$('lNote').value='';renderLedger();open('m-led')},
+  async ledAdd(){
+    const f=fwList()[ledIdx];if(!f)return;const nt=num($('lAmt').value);if(!nt)return toast('請填金額');
+    const L=[...ledgerOf(f),{id:'l'+Date.now().toString(36),d:$('lDate').value||today(),t:$('lType').value,nt,n:$('lNote').value.trim()}];
+    await saveLedger(f,L);$('lAmt').value='';$('lNote').value='';toast('已記錄');
+  },
+  async ledDel(id){
+    const f=fwList()[ledIdx];if(!f)return;const x=ledgerOf(f).find(e=>e.id===id);if(!x||!confirm(`刪除這筆 ${x.t==='in'?'儲值':'扣款'} ${nt(x.nt)}？`))return;
+    await saveLedger(f,ledgerOf(f).filter(e=>e.id!==id));
   },
   tkToggle(i,_,t){
     const arr=tkList().map(x=>({...x}));const x=arr[+i];if(!x)return;
@@ -901,14 +931,34 @@ const fwList=()=>{
   const mid=fwMainId();return L.map((f,i)=>[f,i]).sort((a,b)=>((b[0].id===mid)-(a[0].id===mid))||a[1]-b[1]).map(x=>x[0]);
 };
 const krwKg=v=>num(v)?krw(v)+'/kg':'待確認';
-let fwEdit=-1,fwUsed=null,fwPresetUsed=null;
+let fwEdit=-1,fwUsed=null,fwPresetUsed=null,ledIdx=-1;
+// ===== 預付款 =====
+const ZX_LEDGER=[{id:'l0',d:'2026-11-14',t:'in',nt:10000,n:'首次預付（現金）'}];
+const ledgerOf=f=>Array.isArray(f.ledger)?f.ledger:(f.id==='fw_zx'?ZX_LEDGER:[]);
+const ledSum=L=>{const i=L.filter(e=>e.t==='in').reduce((a,e)=>a+num(e.nt),0),o=L.filter(e=>e.t==='out').reduce((a,e)=>a+num(e.nt),0);return {i,o,b:i-o}};
+function ledBox(f,i){
+  const L=ledgerOf(f);
+  if(!L.length)return `<div style="text-align:right;margin-top:8px"><button class="btn line sm" data-act="ledOpen" data-id="${i}">記預付款</button></div>`;
+  const s=ledSum(L);
+  return `<div class="led"><div><div class="muted">預付款餘額</div><b class="${s.b<2000?'low':''}">${nt(s.b)}</b>${s.b<2000?'<div class="muted" style="color:var(--warn)">餘額偏低，記得補款</div>':''}</div><button class="btn line sm" data-act="ledOpen" data-id="${i}">紀錄・扣款</button></div>`;
+}
+function renderLedger(){
+  const f=fwList()[ledIdx];if(!f)return;const L=ledgerOf(f).slice().sort((a,b)=>String(b.d).localeCompare(String(a.d)));const s=ledSum(L);
+  $('lTitle').textContent=f.name+' 預付款';
+  $('lStats').innerHTML=`<div><b>${nt(s.i)}</b><small>儲值合計</small></div><div><b>${nt(s.o)}</b><small>已扣</small></div><div><b style="color:${s.b<2000?'var(--warn)':'var(--ok)'}">${nt(s.b)}</b><small>餘額</small></div>`;
+  $('lList').innerHTML=L.length?L.map(e=>`<div class="lrow"><div style="min-width:0"><div>${esc(e.n||(e.t==='in'?'儲值':'扣款'))}</div><div class="muted">${esc(String(e.d).replace(/-/g,'/'))}・${e.t==='in'?'儲值':'扣款'}</div></div><span class="amt ${e.t}">${e.t==='in'?'＋':'－'}${nt(e.nt)}</span><span class="del" style="color:var(--sub);padding:0 4px;cursor:pointer" data-act="ledDel" data-id="${e.id}">×</span></div>`).join(''):'<div class="muted">還沒有紀錄</div>';
+}
+async function saveLedger(f,L){
+  const arr=fwList().map(x=>x.id===f.id?{...x,ledger:L}:x);
+  try{await db.collection('kids_settings').doc('site').set({forwarders:arr},{merge:true});renderLedger()}catch(e){toast('儲存失敗：'+e.message)}
+}
 function renderFw(){
   const L=fwList();
   renderCompare();renderTasks();
   $('fwList').innerHTML=L.length?L.map((f,i)=>`<div class="box fw" data-act="editFw" data-id="${i}"><b>${esc(f.name)}</b>${f.id===fwMainId()?'<span class="st arrived" style="margin-left:6px">目前使用</span>':''}${f.myCode?`<div class="muted">我的代號：${esc(f.myCode)}</div>`:''}${f.contact?`<div class="muted">${esc(f.contact)}${f.hours?'・'+esc(f.hours):''}</div>`:''}
     <table>${(f.methods||[]).map(m=>`<tr><td>${esc(m.n)}</td><td>${krwKg(m.krw)}</td><td>${esc(m.days||'')}</td></tr>`).join('')}</table>
     <div class="muted">${[f.minKg?f.minKg+' 公斤起寄':'',f.payFee?'服務費／代付代取 '+f.payFee+'%':''].filter(Boolean).join('・')}</div>
-    ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}<div class="muted" style="text-align:right;margin-top:6px">點這裡編輯 →</div></div>`).join(''):'<div class="empty">還沒有貨運行，按上面新增</div>';
+    ${ledBox(f,i)}${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}<div class="muted" style="text-align:right;margin-top:6px">點這裡編輯 →</div></div>`).join(''):'<div class="empty">還沒有貨運行，按上面新增</div>';
 }
 // ===== 例行小清單 =====
 const TK_DEFAULT=[{id:'tk1',t:'確認貨運行費用有沒有調整',day:1,last:''}];
@@ -993,7 +1043,8 @@ function fwCalc(){
   const min=num(f.minKg);
   $('cOut').innerHTML=(m.krw?`運費 ${kg} kg × ${krw(m.krw)} ＝ ${krw(freight)}`:`<span style="color:var(--warn)">每公斤運費還沒填，問到後到「貨運行」分頁編輯</span>`)+`${pay?`<br>代付代取 ${f.payFee}% ＝ ${krw(pay)}`:''}${add?`<br>加值服務 ${krw(add)}`:''}${dn?`<br>關稅（${dcat}）${kg} kg × NT$${drate} ＝ ${nt(dn)}`:''}<br><b>合計 ${krw(total)}${dn?' ＋ 關稅 '+nt(dn):''} ≈ ${nt(ntv)}</b>${m.days?`<span class="muted">・約 ${esc(m.days)}</span>`:''}`+
     (min&&kg<min?`<div class="muted" style="margin-top:4px">未滿 ${min} 公斤，實際怎麼計費請看這家貨運行的備註（貨運行分頁）</div>`:'')+
-    (/不包稅|不含稅/.test(m.n)?'<div class="muted" style="margin-top:4px">不包稅：關稅另外算，到時記得加進運費欄</div>':'');
+    (/不包稅|不含稅/.test(m.n)?'<div class="muted" style="margin-top:4px">不包稅：關稅另外算，到時記得加進運費欄</div>':'')+
+    (ledgerOf(f).length?`<div class="muted" style="margin-top:4px">${esc(f.name)} 預付款餘額 ${nt(ledSum(ledgerOf(f)).b)}；實際扣款後到「貨運行」分頁記一筆</div>`:'');
   return {f,m,kg,total,nt:ntv};
 }
 let autoSku='';
