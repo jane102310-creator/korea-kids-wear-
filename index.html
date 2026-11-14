@@ -879,11 +879,13 @@ applyWords();
 const TN_PRESET={name:'東大門 TN 物流',contact:'LINE：東大門 TN 物流 小幫手 1 號',hours:'週日–週四 台灣時間 15:00–22:00',minKg:10,payFee:3,
   methods:[{n:'轉機 包稅',krw:8150,days:'4-6 天'},{n:'轉機 不包稅',krw:6150,days:'4-6 天'},{n:'直航 包稅',krw:8950,days:'2-3 天'},{n:'直航 不包稅',krw:6950,days:'2-3 天'},{n:'海運 包稅',krw:6000,days:'10-14 天（不能寄食品）'},{n:'海運 不包稅',krw:4000,days:'10-14 天（不能寄食品）'}],
   note:'2026/10/16 起版本。空運、海運皆 10 公斤起寄，可累積再集運，不滿 10 公斤以 10 公斤計。免費提供厚紙箱、防水袋、泡泡紙；包裹代收、加固保護、倉儲免費。\n拆箱合包減重 ₩500/個、拆箱＋拍照 ₩1,000/個、拆箱＋錄影 ₩3,500/個。\n東大門代付代取 3%；其他網路代訂代付 5%（OLIVE YOUNG、10X10 0%）。\n時效以北部、海關不塞車為準，中南部多抓 1–2 天；平常不急建議寄轉機。'};
-const fwList=()=>Array.isArray(settings.forwarders)?settings.forwarders:[];
+
 const LG_PRESET={name:'LINK GO（弘大辦公室）',contact:'LINE 官方帳號：LINK GO',hours:'每天 11:00–18:00',minKg:5,payFee:0,
   methods:[{n:'直飛 含稅・服飾/鞋包/雜貨',krw:7650,days:'3-4 工作日'},{n:'轉機 含稅・服飾/鞋包/雜貨',krw:7150,days:'5-6 工作日'},{n:'直飛 含稅・玩具',krw:9250,days:'3-4 工作日'},{n:'轉機 含稅・玩具',krw:8650,days:'5-6 工作日'},{n:'直飛 含稅・美妝',krw:7850,days:'3-4 工作日'},{n:'轉機 含稅・美妝',krw:7350,days:'5-6 工作日'},{n:'直飛 含稅・食品',krw:8250,days:'3-4 工作日'},{n:'轉機 含稅・食品',krw:7750,days:'5-6 工作日'},{n:'直飛 不含稅・全品項',krw:5850,days:'3-4 工作日'},{n:'轉機 不含稅・全品項',krw:5350,days:'5-6 工作日'},{n:'海運 不含稅・全品項',krw:3500,days:'3-4 週'}],
   note:'價目為 5 公斤以上參考，5 公斤以下要看小包價格表；包裝後重量 0.3 進位，實際以出貨日公告為準。不含稅：稅金自己付給通關業者。（明星周邊：直飛 ₩7,250、轉機 ₩6,750）\n空運一箱未滿 6 公斤、海運 10 公斤以下，用全新箱子加 ₩2,500（NT$60）。海運 5 公斤起寄。\n倉儲：到貨日起免費 30 天，之後每天 ₩1,000（約 NT$25）；逾期 7 日仍未領取、未付款視同放棄。\n弘大辦公室代收自取（以箱計）：未滿 5 公斤 ₩5,000、5 公斤以上 ₩10,000。行李寄放：兩件不分大小 ₩5,000／天。\n流程：私訊索取集運地址 → 下單寄到倉庫，到貨會通知入庫 → 要寄回時申請集運並選方案 → 打包後告知費用，付款後出貨。\n付款：台幣只收轉帳；韓幣可現金或轉帳。'};
 const PRESETS={tn:TN_PRESET,lg:LG_PRESET};
+const FW_DEFAULT=[{id:'fw_tn',...TN_PRESET},{id:'fw_lg',...LG_PRESET}];
+const fwList=()=>Array.isArray(settings.forwarders)?settings.forwarders:FW_DEFAULT;
 let fwEdit=-1,fwUsed=null;
 function renderFw(){
   const L=fwList();
@@ -891,7 +893,7 @@ function renderFw(){
   $('fwList').innerHTML=L.length?L.map((f,i)=>`<div class="box fw" data-act="editFw" data-id="${i}"><b>${esc(f.name)}</b>${f.contact?`<div class="muted">${esc(f.contact)}${f.hours?'・'+esc(f.hours):''}</div>`:''}
     <table>${(f.methods||[]).map(m=>`<tr><td>${esc(m.n)}</td><td>${krw(m.krw)}/kg</td><td>${esc(m.days||'')}</td></tr>`).join('')}</table>
     <div class="muted">${[f.minKg?f.minKg+' 公斤起寄':'',f.payFee?'代付代取 '+f.payFee+'%':''].filter(Boolean).join('・')}</div>
-    ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}</div><div class="muted" style="text-align:right;margin-top:6px">點這裡編輯 →</div></div>`).join(''):'<div class="empty">還沒有貨運行，按上面新增；可以從 TN 物流、LINK GO 範本帶入</div>';
+    ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}</div><div class="muted" style="text-align:right;margin-top:6px">點這裡編輯 →</div></div>`).join(''):'<div class="empty">還沒有貨運行，按上面新增</div>';
 }
 // ===== 例行小清單 =====
 const TK_DEFAULT=[{id:'tk1',t:'確認貨運行費用有沒有調整（TN 物流、LINK GO）',day:1,last:''}];
