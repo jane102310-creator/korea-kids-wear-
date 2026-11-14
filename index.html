@@ -89,7 +89,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .age.big{background:#e2e7ea;color:#56687a}.age.acc{background:var(--light);color:var(--sub)}
 .look{display:inline-block;font-size:11.5px;color:var(--acc-d);text-decoration:none;border-bottom:1px solid var(--bd);letter-spacing:.03em;margin-right:4px}
 #login{max-width:360px;margin:12vh auto 0;padding:24px 20px}
-summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:none}
+summary{list-style:none;cursor:pointer}
+textarea{line-height:1.5;resize:vertical}
+.calc{margin-top:10px;border:1px dashed var(--acc);border-radius:6px;padding:10px 12px;background:var(--bg)}
+.calc summary{font-size:13px;color:var(--acc-d);letter-spacing:.05em}
+.calc summary:after{content:" ▾";color:var(--sub)}.calc[open] summary:after{content:" ▴"}
+.calc-out{font-size:12.5px;color:var(--acc-d);margin:10px 0 4px;line-height:1.7}
+.fw{border-top:1px solid var(--bd);padding:12px 0 4px;cursor:pointer}
+.fw:first-child{border-top:0}
+.fw b{font-family:"Noto Serif TC",serif;font-weight:600;letter-spacing:.04em}
+.fw table{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
+.fw td{padding:4px 2px;border-bottom:1px solid var(--bd)}.fw td:nth-child(2){text-align:right;white-space:nowrap}.fw td:last-child{text-align:right;color:var(--sub);white-space:nowrap;padding-left:8px}summary::-webkit-details-marker{display:none}
 .rs{border-color:#d9c9ae}
 .rs summary{display:flex;justify-content:space-between;align-items:center;font-family:"Noto Serif TC",serif;font-weight:600;letter-spacing:.05em}
 .rs summary small{font-family:"Noto Sans TC",sans-serif;font-weight:400;font-size:11px;color:var(--warn);letter-spacing:.1em}
@@ -181,6 +191,12 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
       <button class="btn big" data-act="saveRestock">儲存補貨設定</button>
     </div>
     <div class="box">
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">貨運行・集運</b>
+      <p class="muted" style="margin-top:4px">記下每家的價目，叫貨時可以直接試算運費。點一家可以編輯。</p>
+      <div id="fwList"></div>
+      <button class="btn big add" data-act="newFw">＋ 新增貨運行</button>
+    </div>
+    <div class="box">
       <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">匯出資料</b>
       <button class="btn big line" data-act="exportStock">匯出庫存 CSV</button>
       <button class="btn big line" data-act="exportBuy">匯出叫貨紀錄 CSV</button>
@@ -246,6 +262,19 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
     <div><label>實際匯率</label><input id="bRate" type="number" step="0.01" inputmode="decimal"></div>
   </div>
   <label>運費／集運／關稅等（這批總共 NT$）</label><input id="bExtra" type="number" inputmode="numeric" placeholder="0">
+  <details class="calc" id="fwCalc"><summary>用貨運行試算運費</summary>
+    <div class="two">
+      <div><label>貨運行</label><select id="cFw"></select></div>
+      <div><label>寄送方式</label><select id="cM"></select></div>
+    </div>
+    <div class="two">
+      <div><label>這批重量 kg</label><input id="cKg" type="number" step="0.1" inputmode="decimal" placeholder="例 3.5"></div>
+      <div><label>加值服務 ₩ <span class="muted">（選填）</span></label><input id="cAdd" type="number" inputmode="numeric" placeholder="例 拆箱合包 500"></div>
+    </div>
+    <label class="agechk" style="margin-top:10px;display:inline-flex"><input type="checkbox" id="cPay"> <span id="cPayLbl">代付代取</span></label>
+    <div class="calc-out" id="cOut"></div>
+    <button class="btn sm" type="button" data-act="applyFw">帶入運費</button>
+  </details>
   <div class="box" id="bCost" style="margin:10px 0 0;background:var(--light);font-size:13px"></div>
   <label>備註</label><input id="bNote" placeholder="例如：週五到貨、顏色米白">
   <button class="btn big" data-act="saveBuy">儲存</button>
@@ -272,6 +301,26 @@ summary{list-style:none;cursor:pointer}summary::-webkit-details-marker{display:n
 </div></div>
 
 <!-- 檔口 -->
+<div class="mask" id="m-fw"><div class="sheet">
+  <h2><b id="fTitle">新增貨運行</b><span data-act="close" data-id="m-fw">關閉</span></h2>
+  <button class="btn line sm" id="fPreset" data-act="fwPreset" style="margin-top:6px">帶入 東大門 TN 物流（2026/10/16 版價目）</button>
+  <label>名稱 *</label><input id="fName" placeholder="例如：東大門 TN 物流">
+  <div class="two">
+    <div><label>聯絡方式</label><input id="fContact" placeholder="LINE 名稱或 ID"></div>
+    <div><label>營業時間</label><input id="fHours" placeholder="週日–週四 15:00–22:00"></div>
+  </div>
+  <div class="two">
+    <div><label>最低計費 kg</label><input id="fMin" type="number" step="0.1" inputmode="decimal" placeholder="10"></div>
+    <div><label>代付代取服務費 %</label><input id="fPay" type="number" step="0.1" inputmode="decimal" placeholder="3"></div>
+  </div>
+  <label>寄送方式與價目 <span class="muted">（一行一種：名稱, 韓幣/公斤, 天數）</span></label>
+  <textarea id="fMethods" rows="6" placeholder="轉機 包稅, 8150, 4-6 天"></textarea>
+  <label>備註 <span class="muted">（加值服務、注意事項）</span></label>
+  <textarea id="fNote" rows="4"></textarea>
+  <button class="btn big" data-act="saveFw">儲存</button>
+  <button class="btn big red" id="fDel" data-act="delFw">刪除此貨運行</button>
+</div></div>
+
 <div class="mask" id="m-stall"><div class="sheet">
   <h2><b id="tTitle">新增檔口</b><span data-act="close" data-id="m-stall">關閉</span></h2>
   <label>檔口名稱 *</label><input id="tName" placeholder="例如：Nyunyu 3F 小熊屋">
@@ -370,7 +419,7 @@ auth.onAuthStateChanged(u=>{
     db.collection('kids_products').onSnapshot(s=>{allProducts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_stalls').onSnapshot(s=>{allStalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));allBuys=all.filter(x=>x.type!=='ship');allShips=all.filter(x=>x.type==='ship');applyLine()},err),
-    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock()},err)
+    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock();renderFw()},err)
   );
 });
 
@@ -406,7 +455,7 @@ function renderBuys(){
     return `<div class="box"><div class="row"><b>${skuOf(b.productId)?`<span class="muted">${esc(skuOf(b.productId))}</span> `:''}${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
       <div class="row muted"><span>${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span>${krw(sumQty(b)*num(b.krw))}</span></div>
-      <div class="row muted"><span>匯率 ${rateOf(b)}${num(b.extraNt)?'・運費等 '+nt(b.extraNt):''}</span><span>成本 ${nt(unitCost(b))}/件・共 ${nt(unitCost(b)*sumQty(b))}</span></div>
+      <div class="row muted"><span>匯率 ${rateOf(b)}${num(b.extraNt)?'・運費等 '+nt(b.extraNt):''}${b.fw?'・'+esc(b.fw.name)+' '+esc(b.fw.m)+(b.fw.kg?' '+b.fw.kg+'kg':''):''}</span><span>成本 ${nt(unitCost(b))}/件・共 ${nt(unitCost(b)*sumQty(b))}</span></div>
       ${b.note?`<div class="muted">備註：${esc(b.note)}</div>`:''}
       <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">到貨入庫</button>`}</div></div>`;
   }).join(''):'<div class="empty">沒有紀錄</div>';
@@ -548,7 +597,7 @@ const ACT={
     const stallId=$('bStall').value;if(!stallId)return toast('請選擇檔口（可先到「檔口」新增）');
     const qty={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
     if(!Object.keys(qty).length)return toast('請至少填一個'+U()+'的數量');
-    const data={line:curLine,date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),rate:num($('bRate').value)||num(settings.rate)||41.5,extraNt:num($('bExtra').value),note:$('bNote').value.trim()};
+    const data={line:curLine,date:$('bDate').value||today(),stallId,productId:p.id,productName:p.name,qty,krw:num($('bKrw').value),rate:num($('bRate').value)||num(settings.rate)||41.5,extraNt:num($('bExtra').value),note:$('bNote').value.trim(),fw:fwUsed||null};
     try{
       if(editId){
         const old=buys.find(b=>b.id===editId);
@@ -631,6 +680,26 @@ const ACT={
   setLine(id){
     if(id===curLine)return;curLine=id;try{localStorage.setItem('hzLine',id)}catch(e){}
     stallFilter='全部';ageFilter='全部';applyWords();applyLine();scrollTo(0,0);
+  },
+  newFw(){fwEdit=-1;fillFw({})},
+  editFw(i){fwEdit=+i;fillFw(fwList()[fwEdit]||{})},
+  fwPreset(){fillFw(TN_PRESET,true)},
+  async saveFw(){
+    const name=$('fName').value.trim();if(!name)return toast('請填寫貨運行名稱');
+    const methods=$('fMethods').value.split('\n').map(l=>l.split(/[,，]/).map(x=>x.trim())).filter(a=>a[0]).map(a=>({n:a[0],krw:num(String(a[1]||'').replace(/[^\d.]/g,'')),days:a.slice(2).join('，')}));
+    if(!methods.some(m=>m.krw))return toast('請至少填一種寄送方式和每公斤價格');
+    const f={id:fwEdit>=0?fwList()[fwEdit].id:'fw'+Date.now().toString(36),name,contact:$('fContact').value.trim(),hours:$('fHours').value.trim(),minKg:num($('fMin').value),payFee:num($('fPay').value),methods,note:$('fNote').value.trim()};
+    const arr=fwList().slice();if(fwEdit>=0)arr[fwEdit]=f;else arr.push(f);
+    try{await db.collection('kids_settings').doc('site').set({forwarders:arr},{merge:true});ACT.close('m-fw');toast('已儲存')}catch(e){toast('儲存失敗：'+e.message)}
+  },
+  async delFw(){
+    if(fwEdit<0||!confirm('確定刪除這家貨運行？以前叫貨紀錄上的名稱會保留'))return;
+    const arr=fwList().filter((_,i)=>i!==fwEdit);
+    await db.collection('kids_settings').doc('site').set({forwarders:arr},{merge:true});ACT.close('m-fw');toast('已刪除');
+  },
+  applyFw(){
+    const r=fwCalc();if(!r)return toast('先選貨運行、方式並填重量');
+    $('bExtra').value=r.nt;fwUsed={id:r.f.id,name:r.f.name,m:r.m.n,kg:r.kg,krw:r.total};buyPreview();toast('已帶入運費 '+nt(r.nt));
   },
   async saveRestock(){
     const a=parseInt($('sAlert').value)||14,c=parseInt($('sCover').value)||30;
@@ -769,6 +838,56 @@ function renderOverview(){
 }
 $('tLine').addEventListener('change',()=>{$('tAgesWrap').style.display=$('tLine').value==='life'?'none':''});
 applyWords();
+// ===== 貨運行 =====
+const TN_PRESET={name:'東大門 TN 物流',contact:'LINE：東大門 TN 物流 小幫手 1 號',hours:'週日–週四 台灣時間 15:00–22:00',minKg:10,payFee:3,
+  methods:[{n:'轉機 包稅',krw:8150,days:'4-6 天'},{n:'轉機 不包稅',krw:6150,days:'4-6 天'},{n:'直航 包稅',krw:8950,days:'2-3 天'},{n:'直航 不包稅',krw:6950,days:'2-3 天'},{n:'海運 包稅',krw:6000,days:'10-14 天（不能寄食品）'},{n:'海運 不包稅',krw:4000,days:'10-14 天（不能寄食品）'}],
+  note:'2026/10/16 起版本。空運、海運皆 10 公斤起寄，可累積再集運，不滿 10 公斤以 10 公斤計。免費提供厚紙箱、防水袋、泡泡紙；包裹代收、加固保護、倉儲免費。\n拆箱合包減重 ₩500/個、拆箱＋拍照 ₩1,000/個、拆箱＋錄影 ₩3,500/個。\n東大門代付代取 3%；其他網路代訂代付 5%（OLIVE YOUNG、10X10 0%）。\n時效以北部、海關不塞車為準，中南部多抓 1–2 天；平常不急建議寄轉機。'};
+const fwList=()=>Array.isArray(settings.forwarders)?settings.forwarders:[];
+let fwEdit=-1,fwUsed=null;
+function renderFw(){
+  const L=fwList();
+  $('fwList').innerHTML=L.length?L.map((f,i)=>`<div class="fw" data-act="editFw" data-id="${i}"><b>${esc(f.name)}</b>${f.contact?`<div class="muted">${esc(f.contact)}${f.hours?'・'+esc(f.hours):''}</div>`:''}
+    <table>${(f.methods||[]).map(m=>`<tr><td>${esc(m.n)}</td><td>${krw(m.krw)}/kg</td><td>${esc(m.days||'')}</td></tr>`).join('')}</table>
+    <div class="muted">${[f.minKg?f.minKg+' 公斤起寄':'',f.payFee?'代付代取 '+f.payFee+'%':''].filter(Boolean).join('・')}</div>
+    ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}</div>`).join(''):'<div class="muted" style="margin:8px 0">還沒有貨運行</div>';
+}
+function fillFw(f,preset){
+  $('fTitle').textContent=fwEdit>=0?'編輯貨運行':'新增貨運行';
+  $('fPreset').style.display=fwEdit>=0?'none':'';
+  $('fName').value=f.name||'';$('fContact').value=f.contact||'';$('fHours').value=f.hours||'';
+  $('fMin').value=f.minKg||'';$('fPay').value=f.payFee||'';
+  $('fMethods').value=(f.methods||[]).map(m=>[m.n,m.krw,m.days].filter(x=>x!==''&&x!=null).join(', ')).join('\n');
+  $('fNote').value=f.note||'';
+  $('fDel').style.display=fwEdit>=0?'':'none';
+  if(!preset)open('m-fw');
+}
+function fillMethods(sel){
+  const f=fwList().find(x=>x.id===$('cFw').value);
+  $('cM').innerHTML=f?(f.methods||[]).map((m,i)=>`<option value="${i}" ${m.n===sel?'selected':''}>${esc(m.n)}・${krw(m.krw)}/kg</option>`).join(''):'';
+  $('cPayLbl').textContent=f&&f.payFee?`東大門代付代取（貨款 ${f.payFee}%）`:'代付代取';
+}
+function fillCalc(fw){
+  fwUsed=fw||null;
+  const L=fwList();
+  $('cFw').innerHTML=L.length?L.map(f=>`<option value="${esc(f.id)}" ${fw&&fw.id===f.id?'selected':''}>${esc(f.name)}</option>`).join(''):'<option value="">先到設定新增貨運行</option>';
+  fillMethods(fw&&fw.m);$('cKg').value=fw&&fw.kg||'';$('cAdd').value='';$('cPay').checked=false;
+  $('fwCalc').open=!!fw;fwCalc();
+}
+function fwCalc(){
+  const f=fwList().find(x=>x.id===$('cFw').value);const m=f&&(f.methods||[])[+$('cM').value];
+  const kg=parseFloat($('cKg').value)||0;
+  if(!f||!m||!kg){$('cOut').innerHTML=f?'填入這批的重量就會算出運費':'先到「設定 → 貨運行・集運」新增一家';return null}
+  const freight=Math.round(kg*m.krw);
+  const goods=Object.values((()=>{const q={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>q[el.dataset.u]=num(el.value));return q})()).reduce((a,n)=>a+n,0)*num($('bKrw').value);
+  const pay=$('cPay').checked?Math.round(goods*num(f.payFee)/100):0;
+  const add=num($('cAdd').value);const total=freight+pay+add;
+  const r=num($('bRate').value)||num(settings.rate)||41.5;const ntv=Math.round(total/r);
+  const min=num(f.minKg);
+  $('cOut').innerHTML=`運費 ${kg} kg × ${krw(m.krw)} ＝ ${krw(freight)}${pay?`<br>代付代取 ${f.payFee}% ＝ ${krw(pay)}`:''}${add?`<br>加值服務 ${krw(add)}`:''}<br><b>合計 ${krw(total)} ≈ ${nt(ntv)}</b>${m.days?`<span class="muted">・約 ${esc(m.days)}</span>`:''}`+
+    (min&&kg<min?`<div class="muted" style="margin-top:4px">未滿 ${min} 公斤：和其他包裹累積再寄就照實際重量；這批單獨寄會以 ${min} 公斤計（${krw(min*m.krw)}）</div>`:'')+
+    (/不包稅/.test(m.n)?'<div class="muted" style="margin-top:4px">不包稅：關稅另外算，到時記得加進運費欄</div>':'');
+  return {f,m,kg,total,nt:ntv};
+}
 let autoSku='';
 function fillProd(p){
   autoSku=editId?'':nextSku(p.stallId||'');
@@ -795,7 +914,7 @@ function fillBuy(b){
   $('bStall').innerHTML=opts(stalls.map(s=>[s.id,s.name]),b.stallId||(stallFilter!=='全部'?stallFilter:''),'請選擇');
   $('bProd').innerHTML=opts(products.map(p=>[p.id,label(p)]),b.productId||'','請選擇');
   $('bKrw').value=b.krw||'';$('bRate').value=num(b.rate)||settings.rate;$('bExtra').value=b.extraNt||'';$('bNote').value=b.note||'';
-  buySizes(b.qty||{});buyPreview();
+  buySizes(b.qty||{});buyPreview();fillCalc(b.fw);
   $('bDel').style.display=editId?'':'none';open('m-buy');
 }
 function buySizes(qty){
@@ -840,7 +959,8 @@ function buyPreview(){
   }
   $('bCost').innerHTML=q?`共 <b>${q}</b> 件・每件台幣成本 <b>${nt(unitCost(b))}</b>・這批總成本 <b>${nt(unitCost(b)*q)}</b><div class="muted" style="margin-top:4px">${suggest(unitCost(b))}</div>${cmp}`:'填好數量後，這裡會算出每件台幣成本'+cmp;
 }
-$('m-buy').addEventListener('input',buyPreview);
+$('m-buy').addEventListener('input',()=>{buyPreview();fwCalc()});
+$('m-buy').addEventListener('change',e=>{if(e.target.id==='cFw')fillMethods();fwCalc()});
 $('bProd').addEventListener('change',()=>{
   const p=products.find(x=>x.id===$('bProd').value);buySizes({});
   // 換款式時帶入「最近一次」的進價（新增時一律更新，避免留著上一款的價格）
