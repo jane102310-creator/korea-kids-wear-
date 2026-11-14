@@ -43,7 +43,7 @@ h1{font-family:"Noto Serif TC","Gowun Batang",serif;font-size:23px;font-weight:6
 .pill{background:transparent;border:1px solid var(--bd);color:var(--sub);padding:4px 12px;border-radius:2px;font-size:12.5px;letter-spacing:.05em;white-space:nowrap;cursor:pointer}
 .pill.on{background:var(--ink);color:#fbf9f4;border-color:var(--ink)}
 nav{position:fixed;bottom:0;left:0;width:100%;background:var(--card);border-top:1px solid var(--bd);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border:0;border-top:2px solid transparent;margin-top:-1px;padding:9px 0 10px;font-size:13px;color:var(--sub);cursor:pointer;line-height:1.4;letter-spacing:.1em}
+nav button{flex:1;background:none;border:0;border-top:2px solid transparent;margin-top:-1px;padding:9px 0 10px;font-size:13px;color:var(--sub);cursor:pointer;line-height:1.4;letter-spacing:.05em}
 nav button small{display:block;font-size:9.5px;letter-spacing:.2em;font-family:"Gowun Dodum",sans-serif}
 nav button.on{color:var(--ink);font-weight:600;border-top-color:var(--ink)}
 .btn{background:var(--ink);color:#fbf9f4;border:1px solid var(--ink);border-radius:4px;padding:7px 14px;font-size:13px;letter-spacing:.05em;cursor:pointer}
@@ -95,8 +95,9 @@ textarea{line-height:1.5;resize:vertical}
 .calc summary{font-size:13px;color:var(--acc-d);letter-spacing:.05em}
 .calc summary:after{content:" ▾";color:var(--sub)}.calc[open] summary:after{content:" ▴"}
 .calc-out{font-size:12.5px;color:var(--acc-d);margin:10px 0 4px;line-height:1.7}
-.fw{border-top:1px solid var(--bd);padding:12px 0 4px;cursor:pointer}
-.fw:first-child{border-top:0}
+.fw{cursor:pointer}
+.cmp{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13.5px}.cmp:last-child{border:0}.cmp b{font-family:"Gowun Batang",serif;color:var(--acc-d)}.cmp .muted{font-size:11.5px}
+.cmp.best b{color:var(--ok)}
 .fw b{font-family:"Noto Serif TC",serif;font-weight:600;letter-spacing:.04em}
 .fw table{width:100%;border-collapse:collapse;font-size:12.5px;margin:6px 0}
 .fw td{padding:4px 2px;border-bottom:1px solid var(--bd)}.fw td:nth-child(2){text-align:right;white-space:nowrap}.fw td:last-child{text-align:right;color:var(--sub);white-space:nowrap;padding-left:8px}summary::-webkit-details-marker{display:none}
@@ -171,6 +172,22 @@ textarea{line-height:1.5;resize:vertical}
     <div id="stallList"></div>
   </div>
 
+  <!-- 貨運行 -->
+  <div id="s-fw" class="sec">
+    <div class="box">
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">運費比價</b>
+      <p class="muted" style="margin-top:4px">輸入重量，把每家的寄送方式從便宜排到貴。</p>
+      <div class="two">
+        <div><label>重量 kg</label><input id="cmpKg" type="number" step="0.1" inputmode="decimal" placeholder="例 10"></div>
+        <div><label>稅金</label><select id="cmpTax"><option value="all">全部</option><option value="in">含稅／包稅</option><option value="out">不含稅／不包稅</option></select></div>
+      </div>
+      <label>品項 <span class="muted">（有分品項計價的貨運行才會用到）</span></label><select id="cmpCat"><option value="服飾">服飾／鞋包／雜貨</option><option value="玩具">玩具</option><option value="美妝">美妝</option><option value="食品">食品</option><option value="">全部列出</option></select>
+      <div id="cmpOut"></div>
+    </div>
+    <button class="btn big add" style="margin:0 0 12px" data-act="newFw">＋ 新增貨運行</button>
+    <div id="fwList"></div>
+  </div>
+
   <!-- 設定 -->
   <div id="s-set" class="sec">
     <div class="box">
@@ -191,12 +208,6 @@ textarea{line-height:1.5;resize:vertical}
       <button class="btn big" data-act="saveRestock">儲存補貨設定</button>
     </div>
     <div class="box">
-      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">貨運行・集運</b>
-      <p class="muted" style="margin-top:4px">記下每家的價目，叫貨時可以直接試算運費。點一家可以編輯。</p>
-      <div id="fwList"></div>
-      <button class="btn big add" data-act="newFw">＋ 新增貨運行</button>
-    </div>
-    <div class="box">
       <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">匯出資料</b>
       <button class="btn big line" data-act="exportStock">匯出庫存 CSV</button>
       <button class="btn big line" data-act="exportBuy">匯出叫貨紀錄 CSV</button>
@@ -215,6 +226,7 @@ textarea{line-height:1.5;resize:vertical}
   <button data-act="nav" data-id="buy"><small>주문</small>叫貨</button>
   <button data-act="nav" data-id="ship"><small>출고</small>出貨</button>
   <button data-act="nav" data-id="stall"><small>가게</small>檔口</button>
+  <button data-act="nav" data-id="fw"><small>배송</small>貨運行</button>
   <button data-act="nav" data-id="set"><small>설정</small>設定</button>
 </nav>
 
@@ -850,11 +862,28 @@ const PRESETS={tn:TN_PRESET,lg:LG_PRESET};
 let fwEdit=-1,fwUsed=null;
 function renderFw(){
   const L=fwList();
-  $('fwList').innerHTML=L.length?L.map((f,i)=>`<div class="fw" data-act="editFw" data-id="${i}"><b>${esc(f.name)}</b>${f.contact?`<div class="muted">${esc(f.contact)}${f.hours?'・'+esc(f.hours):''}</div>`:''}
+  renderCompare();
+  $('fwList').innerHTML=L.length?L.map((f,i)=>`<div class="box fw" data-act="editFw" data-id="${i}"><b>${esc(f.name)}</b>${f.contact?`<div class="muted">${esc(f.contact)}${f.hours?'・'+esc(f.hours):''}</div>`:''}
     <table>${(f.methods||[]).map(m=>`<tr><td>${esc(m.n)}</td><td>${krw(m.krw)}/kg</td><td>${esc(m.days||'')}</td></tr>`).join('')}</table>
     <div class="muted">${[f.minKg?f.minKg+' 公斤起寄':'',f.payFee?'代付代取 '+f.payFee+'%':''].filter(Boolean).join('・')}</div>
-    ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}</div>`).join(''):'<div class="muted" style="margin:8px 0">還沒有貨運行</div>';
+    ${f.note?`<div class="muted" style="white-space:pre-line;margin-top:4px">${esc(f.note)}</div>`:''}</div><div class="muted" style="text-align:right;margin-top:6px">點這裡編輯 →</div></div>`).join(''):'<div class="empty">還沒有貨運行，按上面新增；可以從 TN 物流、LINK GO 範本帶入</div>';
 }
+function renderCompare(){
+  const kg=parseFloat($('cmpKg').value)||0,tax=$('cmpTax').value,cat=$('cmpCat').value;
+  if(!kg){$('cmpOut').innerHTML='';return}
+  const r=num(settings.rate)||41.5;
+  const rows=[];
+  fwList().forEach(f=>(f.methods||[]).forEach(m=>{
+    if(!m.krw)return;
+    const out=/不包稅|不含稅/.test(m.n),inn=/包稅|含稅/.test(m.n)&&!out;
+    if(tax==='in'&&!inn||tax==='out'&&!out)return;
+    const mc=(m.n.split('・')[1]||'');if(cat&&mc&&!/全品項/.test(mc)&&!mc.includes(cat))return;
+    rows.push({f,m,total:Math.round(kg*m.krw),under:num(f.minKg)&&kg<num(f.minKg)});
+  }));
+  rows.sort((a,b)=>a.total-b.total);
+  $('cmpOut').innerHTML=rows.length?`<div style="margin-top:8px">`+rows.map((x,i)=>`<div class="cmp ${i===0?'best':''}"><div><div>${esc(x.f.name)}</div><div class="muted">${esc(x.m.n)}${x.m.days?'・'+esc(x.m.days):''}${x.under?`・未滿 ${x.f.minKg} 公斤，看備註`:''}</div></div><div style="text-align:right;white-space:nowrap"><b>${krw(x.total)}</b><div class="muted">≈ ${nt(x.total/r)}</div></div></div>`).join('')+`</div><p class="muted" style="margin-top:6px">只算每公斤運費；新箱子、代收、倉儲等加值費用和不含稅的稅金另計。匯率用設定裡的 ${r}。</p>`:'<p class="muted" style="margin-top:8px">沒有符合的寄送方式</p>';
+}
+$('cmpKg').addEventListener('input',renderCompare);$('cmpTax').addEventListener('change',renderCompare);$('cmpCat').addEventListener('change',renderCompare);
 function fillFw(f,preset){
   $('fTitle').textContent=fwEdit>=0?'編輯貨運行':'新增貨運行';
   $('fPreset').style.display=fwEdit>=0?'none':'';
