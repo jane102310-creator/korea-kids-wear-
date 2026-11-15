@@ -213,6 +213,14 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
   <!-- 設定 -->
   <div id="s-set" class="sec">
     <div class="box">
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">批次匯入檔口</b>
+      <p class="muted" style="margin-top:4px">把 Claude 整理好的檔口資料整段貼上（可一次貼很多家，每家從「檔口名稱：」開始）。代號或名稱相同的檔口會更新，其他的會新增。</p>
+      <textarea id="impText" rows="7" placeholder="檔口名稱：MELIKEY 미라이키&#10;編號代號：MK&#10;位置／商場：南大門 웅이아동복 1층 30・31호&#10;年齡層：小童＋大童&#10;聯絡方式：KakaoTalk：bossbori／WeChat：melikey155&#10;…" style="margin-top:8px;font-size:14px"></textarea>
+      <button class="btn big line" data-act="impPreview">預覽</button>
+      <div id="impOut" class="muted" style="margin-top:8px"></div>
+      <button class="btn big" id="impGo" data-act="impGo" style="display:none">確認匯入</button>
+    </div>
+    <div class="box">
       <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">本月總覽</b><span class="muted">　kids＋life 合計</span>
       <div id="ovw"></div>
     </div>
@@ -567,6 +575,33 @@ function lookLinks(s){
   if(s.web)a.push(`<a class="look" href="${esc(/^https?:\/\//i.test(s.web)?s.web:'https://'+s.web)}" target="_blank" rel="noopener">網站 →</a>`);
   return a.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">${a.join('')}</div>`:'';
 }
+// ===== 批次匯入檔口：讀「欄位：值」格式的文字 =====
+let impRows=[];
+const findStall=x=>allStalls.find(s=>(x.code&&String(s.code||'').toUpperCase()===x.code)||String(s.name||'').trim()===x.name);
+function parseStalls(text){
+  const out=[];let cur=null;
+  const clean=v=>{v=v.trim();return /^(空著|空白|無|—|-|－|none)$/i.test(v)?'':v};
+  const firstTok=v=>{const m=v.match(/https?:\/\/[A-Za-z0-9:\/._~%?#=&+-]+/);if(m)return m[0];return (v.split(/[\s（(，,、／/]/)[0]||'').trim()};
+  const map=[[/^檔口名稱|^名稱/,'name'],[/^編號代號|^代號/,'code'],[/^位置/,'loc'],[/^naver/i,'mapq'],[/^用於/,'line'],[/^年齡層/,'ages'],[/^聯絡方式|^聯絡/,'contact'],[/^kakaostory/i,'story'],[/^ig/i,'ig'],[/^官網|^網站/,'web'],[/^備註$/,'note']];
+  text.split(/\r?\n/).forEach(raw=>{
+    const line=raw.replace(/^[\s•\-*·・]+/,'').replace(/\*\*/g,'').trim();
+    if(/朋友資料|WeChat：\s*$/.test(line)&&!/[：:]\s*\S/.test(line.replace(/^.*?朋友資料/,''))){cur=null;return}
+    const m=line.match(/^([^：:]{1,20})[：:]\s*(.*)$/);if(!m)return;
+    const key=m[1].trim().replace(/[（(].*$/,'').trim();
+    const hit=map.find(([re])=>re.test(key));if(!hit)return;
+    const f=hit[1];let v=clean(m[2]);
+    if(f==='name'){cur={name:v};if(v)out.push(cur);return}
+    if(!cur)return;
+    if(f==='code')v=v.replace(/[^A-Za-z]/g,'').toUpperCase().slice(0,4);
+    if(f==='story'||f==='ig')v=v?firstTok(v).replace(/^@/,''):'';
+    if(f==='web')v=v?firstTok(v):'';
+    if(f==='mapq')v=v.replace(/[（(].*$/,'').trim();
+    if(f==='line')v=/兩邊|both/i.test(v)?'both':/life|文創/i.test(v)?'life':'kids';
+    if(f==='ages')v=AGES.filter(a=>v.includes(a)||(a==='配件・全齡'&&/配件|全齡/.test(v)));
+    cur[f]=v;
+  });
+  return out;
+}
 const skuOf=id=>(products.find(p=>p.id===id)||{}).sku||'';
 const label=p=>(p.sku?p.sku+'  ':'')+p.name;
 function nextSku(stallId){
@@ -722,6 +757,22 @@ const ACT={
       else await db.collection('kids_stalls').add({...data,createdAtMs:Date.now()});
       ACT.close('m-stall');toast('已儲存');
     }catch(e){toast('儲存失敗：'+e.message)}
+  },
+  impPreview(){
+    impRows=parseStalls($('impText').value);
+    if(!impRows.length){$('impOut').innerHTML='讀不到資料，每家要有「檔口名稱：」';$('impGo').style.display='none';return}
+    $('impOut').innerHTML=impRows.map(x=>{const old=findStall(x);return `<div class="row"><span>${old?'🔄 更新':'➕ 新增'}　<b style="color:var(--text)">${esc(x.name)}</b>${x.code?` <span class="tag">${esc(x.code)}</span>`:''}</span><span>${esc((x.ages||[]).join('・'))}</span></div>`}).join('');
+    $('impGo').style.display='';
+  },
+  async impGo(){
+    if(!impRows.length)return;
+    const batch=db.batch();let n=0,u=0;
+    impRows.forEach(x=>{const old=findStall(x);
+      if(old){const d={};Object.entries(x).forEach(([k,v])=>{if(Array.isArray(v)?v.length:v)d[k]=v});batch.update(db.collection('kids_stalls').doc(old.id),d);u++}
+      else{batch.set(db.collection('kids_stalls').doc(),{line:'kids',ages:[],loc:'',contact:'',mapq:'',story:'',ig:'',web:'',note:'',code:'',...x,createdAtMs:Date.now()});n++}
+    });
+    try{await batch.commit();toast(`已匯入：新增 ${n} 家、更新 ${u} 家`);$('impText').value='';$('impOut').innerHTML='';$('impGo').style.display='none';impRows=[]}
+    catch(e){toast('匯入失敗：'+e.message)}
   },
   async delStall(){
     if(!editId||!confirm('確定刪除此檔口？相關款式和紀錄會變成「未指定檔口」'))return;
