@@ -88,6 +88,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--acc)}
 .age{display:inline-block;font-size:10.5px;padding:0 7px;border-radius:2px;margin-right:4px;letter-spacing:.05em;background:var(--sand);color:var(--wait)}
 .age.big{background:#e2e7ea;color:#56687a}.age.fam{background:#f3e3e3;color:#9a5f5f}.age.acc{background:var(--light);color:var(--sub)}
 .look{display:inline-block;font-size:11.5px;color:var(--acc-d);text-decoration:none;border-bottom:1px solid var(--bd);letter-spacing:.03em;margin-right:4px}
+textarea.grow{resize:none;overflow:hidden;line-height:1.5;font-family:inherit}
 #login{max-width:360px;margin:12vh auto 0;padding:24px 20px}
 summary{list-style:none;cursor:pointer}
 textarea{line-height:1.5;resize:vertical}
@@ -395,14 +396,14 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
   <label>用於</label><select id="tLine"><option value="kids">好日子kids（童裝）</option><option value="life">好日子life（文創小物）</option><option value="both">兩邊都有</option></select>
   <div id="tAgesWrap"><label>年齡層 <span class="muted">（可複選）</span></label>
   <div id="tAges" style="display:flex;gap:8px;flex-wrap:wrap"></div></div>
-  <label>聯絡方式</label><input id="tContact" placeholder="KakaoTalk ID、電話">
+  <label>聯絡方式</label><textarea id="tContact" class="grow" rows="1" placeholder="KakaoTalk ID、電話"></textarea>
   <label>看圖管道 <span class="muted">（填 ID 或貼網址）</span></label>
   <div class="two">
     <div><input id="tStory" placeholder="KakaoStory ID"></div>
     <div><input id="tIg" placeholder="IG 帳號"></div>
   </div>
   <input id="tWeb" placeholder="官網或其他看圖網址" style="margin-top:8px">
-  <label>備註</label><input id="tNote">
+  <label>備註</label><textarea id="tNote" class="grow" rows="3" placeholder="訂購條件、尺寸、營業時間…"></textarea>
   <button class="btn big" data-act="saveStall">儲存</button>
   <button class="btn big red" id="tDel" data-act="delStall">刪除此檔口</button>
 </div></div>
@@ -1152,7 +1153,7 @@ function shipSizes(qty){
 }
 function fillStall(s){
   $('tTitle').textContent=editId?'編輯檔口':'新增檔口';
-  $('tLine').value=s.line||curLine;$('tAgesWrap').style.display=$('tLine').value==='life'?'none':'';$('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tMap').value=s.mapq||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';
+  $('tLine').value=s.line||curLine;$('tAgesWrap').style.display=$('tLine').value==='life'?'none':'';$('tName').value=s.name||'';$('tCode').value=s.code||'';$('tLoc').value=s.loc||'';$('tContact').value=s.contact||'';$('tMap').value=s.mapq||'';$('tAges').innerHTML=AGES.map(a=>`<label class="agechk"><input type="checkbox" value="${esc(a)}" ${(s.ages||[]).includes(a)?'checked':''}>${esc(a)}</label>`).join('');$('tStory').value=s.story||'';$('tIg').value=s.ig||'';$('tWeb').value=s.web||'';$('tNote').value=s.note||'';setTimeout(()=>document.querySelectorAll('#m-stall textarea.grow').forEach(fitTA),0);
   $('tDel').style.display=editId?'':'none';open('m-stall');
 }
 
@@ -1164,6 +1165,9 @@ $('hProd').addEventListener('change',()=>{
   if(p&&!$('hNt').value&&pNt(p))$('hNt').value=pNt(p);
 });
 $('tq').addEventListener('input',renderStalls);
+// 檔口表單的備註、聯絡方式：自動長高，全部內容都看得到
+function fitTA(el){el.style.height='auto';el.style.height=(el.scrollHeight+2)+'px'}
+document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('grow'))fitTA(e.target)});
 $('sq').addEventListener('input',renderShips);
 function buyPreview(){
   const qty={};document.querySelectorAll('#bSizes [data-u]').forEach(el=>{const n=num(el.value);if(n>0)qty[el.dataset.u]=n});
