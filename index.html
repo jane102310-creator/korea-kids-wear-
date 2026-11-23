@@ -201,6 +201,11 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
 
   <!-- 型錄 -->
   <div id="s-cat" class="sec">
+    <details class="box" id="phBox" style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:600">💬 常用韓語回覆（點一下就複製）</summary>
+      <div id="phList" style="margin-top:8px"></div>
+      <div class="two" style="margin-top:8px"><input id="phZh" placeholder="中文說明"><input id="phKo" placeholder="韓文內容"></div>
+      <button class="btn big line" data-act="phAdd">＋ 新增常用句</button>
+    </details>
     <div class="muted" id="catInfo" style="margin-bottom:8px">型錄載入中…</div>
     <input id="cq" type="search" placeholder="🔍 搜尋品牌、品名（中／韓）、顏色" style="margin-bottom:10px" autocomplete="off">
     <div class="pills" id="catBrands"></div>
@@ -522,7 +527,7 @@ auth.onAuthStateChanged(u=>{
     db.collection('kids_stalls').onSnapshot(s=>{allStalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));allBuys=all.filter(x=>x.type!=='ship');allShips=all.filter(x=>x.type==='ship');applyLine()},err),
     db.collection('kids_settings').doc('cart').onSnapshot(d=>{CART=(d.exists&&d.data().lines)||{};renderCat()},err),
-    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock();renderFw()},err)
+    db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;renderPh();$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock();renderFw()},err)
   );
 });
 
@@ -1242,6 +1247,24 @@ const SZO=['6M','12M','18M','S','M','L','XL','XXL','Free','12호','13호'];
 const cartSort=L=>L.slice().sort(([a],[b])=>{const A=a.split('|'),B=b.split('|');return (+A[1]-+B[1])||A[2].localeCompare(B[2],'zh-Hant')||((SZO.indexOf(A[3])+99)%99-(SZO.indexOf(B[3])+99)%99)});
 const crate=()=>num(settings.rate)||41.5;
 fetch('catalog/items.json').then(r=>r.json()).then(j=>{CAT=j;renderCat()}).catch(()=>{$('catInfo').textContent='型錄載入失敗，請重新整理'});
+const PH0=[
+ ['跟檔口要收據','주문 완료되면 영수증 꼭 보내주세요. 감사합니다! 🤍'],
+ ['貨運行取貨、代付','픽업은 삼촌픽업, 결제는 삼촌대납으로 부탁드립니다. (삼촌 명함 보내드릴게요)'],
+ ['幾天後可以取貨？','며칠 후에 픽업 가능할까요?'],
+ ['今天可以拿貨嗎？','오늘 픽업 가능할까요?'],
+ ['有庫存嗎？','재고 있나요?'],
+ ['請傳批發價目表','도매 단가표 보내주실 수 있을까요?'],
+ ['最低訂購數量？','도매 최소 주문 수량이 몇 장인가요?'],
+ ['有 KC 認證嗎？','이 상품 KC 인증 있나요?'],
+ ['店面在哪裡？','매장 위치가 어디인지 알 수 있을까요? 상가 이름이랑 층, 호수 알려주세요.'],
+ ['自我介紹','안녕하세요! 대만에서 아동복 판매하는 기쁜날(好日子)입니다 😊'],
+ ['謝謝，了解了','안내 감사합니다! 😊 확인했습니다 🤍']];
+function renderPh(){const my=settings.phrases||[];$('phList').innerHTML=[...PH0.map(x=>[...x,-1]),...my.map((x,i)=>[x.zh,x.ko,i])].map(([z,k,i])=>`<div class="row" style="border-top:1px solid var(--bd);padding:6px 0;align-items:flex-start"><div style="flex:1;cursor:pointer" data-act="phCopy" data-id="${esc(k)}"><b style="font-size:13px">${esc(z)}</b><div style="font-size:15px;color:var(--text)">${esc(k)}</div></div>${i>=0?`<button class="btn line sm" data-act="phDel" data-id="${i}">刪除</button>`:''}</div>`).join('')}
+Object.assign(ACT,{
+  async phCopy(k){try{await navigator.clipboard.writeText(k);toast('已複製：'+k.slice(0,18)+'…')}catch(e){toast('無法複製，請長按文字')}},
+  async phAdd(){const zh=$('phZh').value.trim(),ko=$('phKo').value.trim();if(!ko)return toast('請填韓文內容');const my=[...(settings.phrases||[]),{zh:zh||'自訂',ko}];try{await db.collection('kids_settings').doc('site').set({phrases:my},{merge:true});$('phZh').value=$('phKo').value='';toast('已新增')}catch(e){toast('儲存失敗：'+e.message)}},
+  async phDel(i){if(!confirm('刪除這句？'))return;const my=(settings.phrases||[]).filter((_,j)=>j!=i);await db.collection('kids_settings').doc('site').set({phrases:my},{merge:true});toast('已刪除')}
+});
 function cartBar(){let c=0,w=0;for(const[k,q]of Object.entries(CART)){const[b,n]=k.split('|');const d=cget(b,n);if(d){c+=q;w+=q*d.pr}}$('cc').textContent=c;$('cw').textContent=krw(w);$('cbar').style.display=c&&$('s-cat').classList.contains('on')?'':'none'}
 function renderCat(){
   if(!CAT.length)return;
