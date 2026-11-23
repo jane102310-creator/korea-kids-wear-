@@ -38,6 +38,26 @@ header{display:flex;justify-content:space-between;align-items:flex-end;margin-bo
 .ovw tr.tot td{border-bottom:0;border-top:1px solid var(--ink);font-weight:700}
 h1{font-family:"Noto Serif TC","Gowun Batang",serif;font-size:23px;font-weight:600;letter-spacing:.04em;margin-top:6px}
 .sec{display:none}.sec.on{display:block}
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:56px}
+.cc{background:var(--card);border:1px solid var(--bd);border-radius:12px;overflow:hidden;font-size:13px}
+.cc.pk{box-shadow:0 0 0 2px #e2d3b8}
+.cc .ph{position:relative;aspect-ratio:1/1;background:#eee}.cc .ph img{width:100%;height:100%;object-fit:cover;display:block}
+.cc .no{position:absolute;top:6px;left:6px;background:rgba(255,255,255,.9);color:#3b2f26;font-size:11px;padding:0 6px;border-radius:6px}
+.cc .st{position:absolute;top:6px;right:6px;background:#3b2f26;color:#fff;font-size:11px;padding:0 6px;border-radius:6px}
+.cc .bd{padding:8px 9px 10px}.cc .zh{font-weight:700;font-size:14px;line-height:1.3}.cc .ko{color:var(--sub);font-size:12px}
+.cc .pr{margin:3px 0}.cc .pr b{font-size:15px}.cc .pr span{color:var(--sub);font-size:12px;margin-left:4px}
+.cc .wn{color:var(--warn);font-size:12px}
+.cc select{font-size:14px;padding:6px;margin-top:5px}
+.cq{display:flex;align-items:center;border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-top:5px;background:#fff}
+.cq button{width:36px;height:36px;flex:none;border:0;background:var(--light);font-size:17px;color:var(--sub);cursor:pointer}
+.cq input{border:0;border-radius:0;text-align:center;padding:6px;background:#fff;font-size:16px}
+.cc .add{width:100%;margin-top:6px}
+.cc .in{color:var(--ok);font-size:12px;margin-top:4px}
+.cbar{position:fixed;left:0;right:0;bottom:calc(56px + env(safe-area-inset-bottom));z-index:45;background:#3b2f26;color:#fff;display:flex;align-items:center;gap:10px;padding:8px 16px}
+.cbar .btn{margin-left:auto;background:#fff;color:#3b2f26;border-color:#fff}
+.cl{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--bd);font-size:13px}
+.cl img{width:44px;height:44px;object-fit:cover;border-radius:6px}
+.cl .cq{margin:0}.cl .cq button{width:30px;height:30px}.cl .cq input{width:40px;padding:4px}
 .pills{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
 .pills::-webkit-scrollbar{display:none}
 .pill{background:transparent;border:1px solid var(--bd);color:var(--sub);padding:4px 12px;border-radius:2px;font-size:12.5px;letter-spacing:.05em;white-space:nowrap;cursor:pointer}
@@ -179,6 +199,17 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
     <div id="shipList"></div>
   </div>
 
+  <!-- 型錄 -->
+  <div id="s-cat" class="sec">
+    <div class="muted" id="catInfo" style="margin-bottom:8px">型錄載入中…</div>
+    <input id="cq" type="search" placeholder="🔍 搜尋品牌、品名（中／韓）、顏色" style="margin-bottom:10px" autocomplete="off">
+    <div class="pills" id="catBrands"></div>
+    <div class="pills" id="catCats"></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px"><button class="pill" id="catPick">★ 只看推薦</button><select id="catSort" style="flex:1"><option value="n">型錄順序</option><option value="lo">價格低到高</option><option value="hi">價格高到低</option></select></div>
+    <div id="catGrid" class="cgrid"></div>
+    <div class="cbar" id="cbar" style="display:none"><span>🧺 <b id="cc">0</b> 件・<b id="cw">₩0</b></span><button class="btn" data-act="cartOpen">查看訂單</button></div>
+  </div>
+
   <!-- 檔口 -->
   <div id="s-stall" class="sec">
     <button class="btn big add" style="margin:0 0 12px" data-act="newStall">＋ 新增檔口</button>
@@ -258,10 +289,17 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
   <button class="on" data-act="nav" data-id="stock"><small>재고</small>庫存</button>
   <button data-act="nav" data-id="buy"><small>주문</small>叫貨</button>
   <button data-act="nav" data-id="ship"><small>출고</small>出貨</button>
+  <button data-act="nav" data-id="cat"><small>도매</small>型錄</button>
   <button data-act="nav" data-id="stall"><small>가게</small>檔口</button>
   <button data-act="nav" data-id="fw"><small>배송</small>貨運行</button>
   <button data-act="nav" data-id="set"><small>설정</small>設定</button>
 </nav>
+
+<!-- 型錄訂單 -->
+<div class="mask" id="m-cart"><div class="sheet">
+  <h2><b>型錄訂單</b><span data-act="close" data-id="m-cart">✕</span></h2>
+  <div id="cartList"></div>
+</div></div>
 
 <!-- 款式 -->
 <div class="mask" id="m-prod"><div class="sheet">
@@ -483,6 +521,7 @@ auth.onAuthStateChanged(u=>{
     db.collection('kids_products').onSnapshot(s=>{allProducts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_stalls').onSnapshot(s=>{allStalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));allBuys=all.filter(x=>x.type!=='ship');allShips=all.filter(x=>x.type==='ship');applyLine()},err),
+    db.collection('kids_settings').doc('cart').onSnapshot(d=>{CART=(d.exists&&d.data().lines)||{};renderCat()},err),
     db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock();renderFw()},err)
   );
 });
@@ -643,7 +682,7 @@ const ACT={
   nav(id,_,t){
     document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='s-'+id));
     document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b===t));
-    scrollTo(0,0);
+    scrollTo(0,0);cartBar();
   },
   close(id){$(id).classList.remove('on');document.body.classList.toggle('lock',!!document.querySelector('.mask.on'))},
   stallFilter(id){stallFilter=id;renderStock()},
@@ -1189,6 +1228,82 @@ $('bProd').addEventListener('change',()=>{
   buyPreview();
 });
 $('q').addEventListener('input',renderStock);
+// ===== 型錄：檔口價目表 → 選款 → 一鍵轉成叫貨 =====
+let CAT=[],catBrand='all',catCat='全部',catPick=false,CART={};
+const CB={vb:{name:'Valubebe 벨루베베',code:'VB',min:'首次交易至少 2 款、3 件以上'},ao:{name:'Aosta 아오스타',code:'AO',min:''}};
+const CCATS=['全部','連身衣','外套背心','上衣','洋裝','褲裙','帽子配件','襪子','鞋子'];
+const CMAP={'連身衣':'其他','外套背心':'外套/針織','上衣':'上衣/T恤','洋裝':'其他','褲裙':'褲子/裙裝','帽子配件':'配件/鞋帽','襪子':'配件/鞋帽','鞋子':'配件/鞋帽'};
+const KOC={'象牙白':'아이보리','象牙':'아이보리','米色':'베이지','米':'베이지','咖啡':'브라운','深咖啡':'진브라운','奶油':'크림','黑':'블랙','灰':'그레이','淺灰':'연그레이','炭灰':'차콜','麻灰':'멜란그레이','深灰':'다크그레이','粉':'핑크','深粉':'진핑크','紅':'레드','藍':'블루','淺藍':'소라','海軍藍':'네이비','紫':'퍼플','淺紫':'연보라','橄欖綠':'올리브','橄欖':'올리브','綠':'그린','芥末黃':'머스터드','黃':'옐로','卡其':'카키','駝色':'카멜','酒紅':'와인','磚紅':'브릭','紅格':'레드체크','綠格':'그린체크','藍綠':'블루그린','焦糖':'카라멜','中藍':'중청','單色':'원컬러','單色（奶油）':'원컬러'};
+const copt=v=>String(v).split('、').map(x=>x.replace(/共.*$/,'').trim()).filter(Boolean);
+const csz=d=>String(d.sz).replace(/（.*?）/g,'').split('・').map(x=>x.trim().split(' ')[0]).filter(Boolean);
+const cget=(b,n)=>CAT.find(x=>x.b===b&&x.n==n);
+const cstall=b=>allStalls.find(s=>String(s.code||'').toUpperCase()===CB[b].code);
+const crate=()=>num(settings.rate)||41.5;
+fetch('catalog/items.json').then(r=>r.json()).then(j=>{CAT=j;renderCat()}).catch(()=>{$('catInfo').textContent='型錄載入失敗，請重新整理'});
+function cartBar(){let c=0,w=0;for(const[k,q]of Object.entries(CART)){const[b,n]=k.split('|');const d=cget(b,n);if(d){c+=q;w+=q*d.pr}}$('cc').textContent=c;$('cw').textContent=krw(w);$('cbar').style.display=c&&$('s-cat').classList.contains('on')?'':'none'}
+function renderCat(){
+  if(!CAT.length)return;
+  const kw=$('cq').value.trim().toLowerCase();
+  $('catInfo').textContent=`共 ${CAT.length} 款・台幣用目前匯率 ${crate()} 估算進價，未含運費`;
+  $('catBrands').innerHTML=[['all','全部品牌'],...Object.entries(CB).map(([k,v])=>[k,v.name])].map(([k,n])=>`<button class="pill ${k===catBrand?'on':''}" data-act="catBrand" data-id="${k}">${esc(n)} ${k==='all'?CAT.length:CAT.filter(d=>d.b===k).length}</button>`).join('');
+  const inB=CAT.filter(d=>catBrand==='all'||d.b===catBrand);
+  $('catCats').innerHTML=CCATS.filter(c=>c==='全部'||inB.some(d=>d.cat===c)).map(c=>`<button class="pill ${c===catCat?'on':''}" data-act="catCat" data-id="${c}">${c}${c==='全部'?'':' '+inB.filter(d=>d.cat===c).length}</button>`).join('');
+  $('catPick').classList.toggle('on',catPick);
+  let L=inB.filter(d=>(catCat==='全部'||d.cat===catCat)&&(!catPick||d.pick)&&(!kw||[d.zh,d.ko,d.col,CB[d.b].name].join(' ').toLowerCase().includes(kw)));
+  const so=$('catSort').value;if(so==='lo')L=L.slice().sort((a,b)=>a.pr-b.pr);if(so==='hi')L=L.slice().sort((a,b)=>b.pr-a.pr);
+  $('catGrid').innerHTML=L.length?L.map(d=>{const inQ=Object.entries(CART).filter(([k])=>k.startsWith(d.b+'|'+d.n+'|')).reduce((a,[,q])=>a+q,0);
+    return `<div class="cc${d.pick?' pk':''}" data-b="${d.b}" data-n="${d.n}"><div class="ph"><img src="${esc(d.img)}" alt="" loading="lazy"><span class="no">${d.b.toUpperCase()} #${d.n}</span>${d.pick?'<span class="st">★</span>':''}</div><div class="bd"><div class="zh">${esc(d.zh)}</div><div class="ko">${esc(d.ko)}</div><div class="pr"><b>${krw(d.pr)}</b><span>≈${nt(d.pr/crate())}</span></div><div class="muted">${esc(d.col)}</div><div class="muted">${esc(d.sz)}</div>${d.warn?`<div class="wn">⚠ ${esc(d.warn)}</div>`:''}
+    <select class="ccol">${copt(d.col).map(c=>`<option>${esc(c)}</option>`).join('')}</select><select class="csz">${csz(d).map(z=>`<option>${esc(z)}</option>`).join('')}</select>
+    <div class="cq"><button class="cm">−</button><input class="cn" value="1" inputmode="numeric"><button class="cp">+</button></div><button class="btn add">加入訂單</button>${inQ?`<div class="in">🧺 已加 ${inQ} 件</div>`:''}</div></div>`}).join(''):'<div class="empty">沒有符合的款式</div>';
+  cartBar();
+}
+async function saveCart(){try{await db.collection('kids_settings').doc('cart').set({lines:CART,updatedAtMs:Date.now()})}catch(e){toast('訂單儲存失敗：'+e.message)}}
+function setCart(k,q){q=Math.max(0,parseInt(q)||0);if(q)CART[k]=q;else delete CART[k];saveCart();renderCat();if($('m-cart').classList.contains('on'))renderCart()}
+function cartText(b){const L=Object.entries(CART).filter(([k])=>k.startsWith(b+'|'));let t='안녕하세요! 대만 아동복 기쁜날(好日子)입니다 😊\n아래와 같이 주문 부탁드립니다.\n\n';L.forEach(([k,q],i)=>{const[,n,c,z]=k.split('|');const d=cget(b,n);t+=`${i+1}) ${d.ko} / ${KOC[c]||c} / ${z} / ${q}장\n`});const w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);t+=`\n총 ${L.reduce((a,[,q])=>a+q,0)}장 / ₩${w.toLocaleString()}\n재고 확인 후 결제 금액 알려주세요. 감사합니다! 🤍`;return t}
+function renderCart(){
+  const bs=[...new Set(Object.keys(CART).map(k=>k.split('|')[0]))].filter(b=>CB[b]);
+  $('cartList').innerHTML=bs.length?bs.map(b=>{const L=Object.entries(CART).filter(([k])=>k.startsWith(b+'|')&&cget(b,k.split('|')[1]));const pcs=L.reduce((a,[,q])=>a+q,0),sty=new Set(L.map(([k])=>k.split('|')[1])).size,w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);const st=cstall(b);
+    return `<div class="box"><b>${esc(CB[b].name)}</b>${L.map(([k,q])=>{const[,n,c,z]=k.split('|');const d=cget(b,n);return `<div class="cl"><img src="${esc(d.img)}" alt=""><div><b>#${n} ${esc(d.zh)}</b><div class="muted">${esc(c)}・${esc(z)}・${krw(d.pr)}</div></div><div class="cq"><button data-act="cartQ" data-id="${esc(k)}" data-u="-1">−</button><input value="${q}" data-ck="${esc(k)}" inputmode="numeric"><button data-act="cartQ" data-id="${esc(k)}" data-u="1">+</button></div></div>`}).join('')}
+    <div class="row" style="border-top:1px solid var(--bd);padding-top:6px;font-weight:700"><span>${sty} 款 ${pcs} 件</span><span>${krw(w)}（≈${nt(w/crate())}）</span></div>
+    ${b==='vb'&&(sty<2||pcs<3)?`<div class="muted" style="color:var(--warn)">⚠ ${CB.vb.min}</div>`:''}
+    ${st?'':`<div class="muted" style="color:var(--warn)">⚠ 還沒有代號 ${CB[b].code} 的檔口，轉叫貨前請先新增</div>`}
+    <button class="btn big line" data-act="cartCopy" data-id="${b}">📋 複製韓文訂單</button>
+    <button class="btn big" data-act="cartToBuy" data-id="${b}">📝 轉成叫貨紀錄</button></div>`}).join('')+'<button class="btn big line" data-act="cartClear">清空訂單</button>':'<div class="empty">還沒加任何款式</div>';
+}
+Object.assign(ACT,{
+  catBrand(id){catBrand=id;catCat='全部';renderCat()},
+  catCat(id){catCat=id;renderCat()},
+  cartOpen(){renderCart();open('m-cart')},
+  cartQ(k,d){setCart(k,(CART[k]||0)+Number(d))},
+  cartClear(){if(confirm('清空整張訂單？')){CART={};saveCart();renderCat();renderCart()}},
+  async cartCopy(b,_,t){const tx=cartText(b);try{await navigator.clipboard.writeText(tx);toast('已複製，貼到 WeChat／Kakao 傳給檔口')}catch(e){t.insertAdjacentHTML('afterend',`<textarea style="height:180px;margin-top:6px">${esc(tx)}</textarea>`);toast('請長按下面的文字複製')}},
+  async cartToBuy(b){
+    const st=cstall(b);if(!st)return toast(`請先新增代號 ${CB[b].code} 的檔口`);
+    const L=Object.entries(CART).filter(([k])=>k.startsWith(b+'|')&&cget(b,k.split('|')[1]));if(!L.length)return;
+    if(!confirm(`把 ${CB[b].name} 的 ${L.reduce((a,[,q])=>a+q,0)} 件轉成「已叫貨」紀錄？\n沒有的款式會自動建立。`))return;
+    const groups={};L.forEach(([k,q])=>{const[,n,c,z]=k.split('|');const g=n+'|'+c;groups[g]=groups[g]||{n,c,qty:{}};groups[g].qty[z]=num(groups[g].qty[z])+q});
+    const d0=today(),pre=String(st.code).toUpperCase()+'-'+d0.slice(2,4)+d0.slice(5,7)+'-';
+    let mx=allProducts.filter(p=>String(p.sku||'').startsWith(pre)).reduce((m,p)=>Math.max(m,parseInt(String(p.sku).slice(pre.length))||0),0);
+    const batch=db.batch(),rate=crate();let made=0;
+    Object.values(groups).forEach(g=>{const d=cget(b,g.n),ck=b+'|'+g.n+'|'+g.c,nm=`${d.zh}（${g.c}）`;
+      const p=allProducts.find(x=>x.catKey===ck);let pid;
+      if(p)pid=p.id;else{const ref=db.collection('kids_products').doc();pid=ref.id;made++;
+        batch.set(ref,{line:'kids',catKey:ck,sku:pre+String(++mx).padStart(3,'0'),name:nm,category:CMAP[d.cat]||'其他',stallId:st.id,units:csz(d),krw:d.pr,nt:0,image:d.img,note:`${d.ko}・型錄 ${b.toUpperCase()} #${d.n}`,stock:{},createdAt:FV.serverTimestamp()})}
+      batch.set(db.collection('kids_purchases').doc(),{line:'kids',date:d0,stallId:st.id,productId:pid,productName:p?p.name:nm,qty:g.qty,krw:d.pr,rate,extraNt:0,note:`型錄下單 ${b.toUpperCase()} #${d.n}`,status:'ordered',createdAtMs:Date.now()});
+    });
+    L.forEach(([k])=>delete CART[k]);
+    batch.set(db.collection('kids_settings').doc('cart'),{lines:CART,updatedAtMs:Date.now()});
+    try{await batch.commit();toast(`已建立 ${Object.keys(groups).length} 筆叫貨${made?`、新增 ${made} 個款式`:''}`);renderCart();renderCat()}catch(e){toast('轉換失敗：'+e.message)}
+  }
+});
+$('catPick').addEventListener('click',()=>{catPick=!catPick;renderCat()});
+$('cq').addEventListener('input',renderCat);$('catSort').addEventListener('change',renderCat);
+$('catGrid').addEventListener('click',e=>{const c=e.target.closest('.cc');if(!c)return;const n=c.querySelector('.cn');
+  if(e.target.closest('.cm'))n.value=Math.max(1,(parseInt(n.value)||1)-1);
+  else if(e.target.closest('.cp'))n.value=(parseInt(n.value)||0)+1;
+  else if(e.target.closest('.add')){const k=[c.dataset.b,c.dataset.n,c.querySelector('.ccol').value,c.querySelector('.csz').value].join('|');setCart(k,(CART[k]||0)+(parseInt(n.value)||1));toast('已加入訂單')}});
+$('m-cart').addEventListener('change',e=>{const i=e.target.closest('input[data-ck]');if(i)setCart(i.dataset.ck,i.value)});
+
 document.addEventListener('click',e=>{
   if(e.target.closest('a'))return;
   if(e.target.classList.contains('mask'))return ACT.close(e.target.id);
