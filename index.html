@@ -1265,7 +1265,7 @@ function cartText(b){const L=cartSort(Object.entries(CART).filter(([k])=>k.start
 function renderCart(){
   const bs=[...new Set(Object.keys(CART).map(k=>k.split('|')[0]))].filter(b=>CB[b]);
   $('cartList').innerHTML=bs.length?bs.map(b=>{const L=cartSort(Object.entries(CART).filter(([k])=>k.startsWith(b+'|')&&cget(b,k.split('|')[1])));const pcs=L.reduce((a,[,q])=>a+q,0),sty=new Set(L.map(([k])=>k.split('|')[1])).size,w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);const st=cstall(b);
-    return `<div class="box"><b>${esc(CB[b].name)}</b>${L.map(([k,q])=>{const[,n,c,z]=k.split('|');const d=cget(b,n);return `<div class="cl"><img src="${esc(d.img)}" alt=""><div><b>#${n} ${esc(d.zh)}</b><div class="muted">${esc(c)}・${esc(z)}・${krw(d.pr)}</div></div><div class="cq"><button data-act="cartQ" data-id="${esc(k)}" data-u="-1">−</button><input value="${q}" data-ck="${esc(k)}" inputmode="numeric"><button data-act="cartQ" data-id="${esc(k)}" data-u="1">+</button></div></div>`}).join('')}
+    return `<div class="box"><b>${esc(CB[b].name)}</b>${L.map(([k,q])=>{const[,n,c,z]=k.split('|');const d=cget(b,n);return `<div class="cl"><img src="${esc(d.img)}" alt=""><div><b>#${n} ${esc(d.zh)}</b><div style="display:flex;gap:4px;margin-top:3px"><select class="ccc" data-ck="${esc(k)}" style="padding:4px 6px;font-size:14px">${copt(d.col).map(x=>`<option ${x===c?'selected':''}>${esc(x)}</option>`).join('')}</select><select class="ccz" data-ck="${esc(k)}" style="padding:4px 6px;font-size:14px;width:auto">${csz(d).map(x=>`<option ${x===z?'selected':''}>${esc(x)}</option>`).join('')}</select></div><div class="muted">${krw(d.pr)}／件</div></div><div class="cq"><button data-act="cartQ" data-id="${esc(k)}" data-u="-1">−</button><input value="${q}" data-ck="${esc(k)}" inputmode="numeric"><button data-act="cartQ" data-id="${esc(k)}" data-u="1">+</button></div></div>`}).join('')}
     <div class="row" style="border-top:1px solid var(--bd);padding-top:6px;font-weight:700"><span>${sty} 款 ${pcs} 件</span><span>${krw(w)}（≈${nt(w/crate())}）</span></div>
     ${b==='vb'&&(sty<2||pcs<3)?`<div class="muted" style="color:var(--warn)">⚠ ${CB.vb.min}</div>`:''}
     ${st?'':`<div class="muted" style="color:var(--warn)">⚠ 還沒有代號 ${CB[b].code} 的檔口，轉叫貨前請先新增</div>`}
@@ -1304,7 +1304,14 @@ $('catGrid').addEventListener('click',e=>{const c=e.target.closest('.cc');if(!c)
   if(e.target.closest('.cm'))n.value=Math.max(1,(parseInt(n.value)||1)-1);
   else if(e.target.closest('.cp'))n.value=(parseInt(n.value)||0)+1;
   else if(e.target.closest('.add')){const k=[c.dataset.b,c.dataset.n,c.querySelector('.ccol').value,c.querySelector('.csz').value].join('|');setCart(k,(CART[k]||0)+(parseInt(n.value)||1));toast('已加入訂單')}});
-$('m-cart').addEventListener('change',e=>{const i=e.target.closest('input[data-ck]');if(i)setCart(i.dataset.ck,i.value)});
+$('m-cart').addEventListener('change',e=>{
+  const i=e.target.closest('input[data-ck]');if(i)return setCart(i.dataset.ck,i.value);
+  const sel=e.target.closest('select[data-ck]');if(!sel)return;
+  const k=sel.dataset.ck,q=CART[k]||0,[b,n,c,z]=k.split('|');
+  const nk=[b,n,sel.classList.contains('ccc')?sel.value:c,sel.classList.contains('ccz')?sel.value:z].join('|');
+  if(nk===k)return;delete CART[k];CART[nk]=(CART[nk]||0)+q;
+  if(CART[nk]>q)toast('已有相同顏色尺寸，數量已合併');
+  saveCart();renderCat();renderCart()});
 
 document.addEventListener('click',e=>{
   if(e.target.closest('a'))return;
