@@ -250,7 +250,19 @@ nav button .dot{display:inline-block;width:6px;height:6px;border-radius:50%;back
   </div>
 
   <!-- 設定 -->
+  <!-- 創業工具 -->
+  <div id="s-tool" class="sec">
+    <button class="btn line sm" data-act="toolBack" style="margin-bottom:10px">← 回創業工具</button>
+    <h2 id="toolTitle" style="font-size:20px;margin-bottom:8px"></h2>
+    <div id="toolBody"></div>
+  </div>
+
   <div id="s-set" class="sec">
+    <div class="box">
+      <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">🧰 創業工具</b>
+      <p class="muted" style="margin-top:4px">10 張表都跟網站的叫貨、出貨資料連動，填的內容會存在 Firebase。</p>
+      <div id="toolMenu" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px"></div>
+    </div>
     <div class="box">
       <b style="font-family:'Noto Serif TC',serif;font-weight:600;letter-spacing:.05em">批次匯入檔口</b>
       <p class="muted" style="margin-top:4px">把 Claude 整理好的檔口資料整段貼上（可一次貼很多家，每家從「檔口名稱：」開始）。代號或名稱相同的檔口會更新，其他的會新增。</p>
@@ -526,13 +538,14 @@ auth.onAuthStateChanged(u=>{
     db.collection('kids_products').onSnapshot(s=>{allProducts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_stalls').onSnapshot(s=>{allStalls=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(a.name).localeCompare(b.name,'zh-Hant'));applyLine()},err),
     db.collection('kids_purchases').onSnapshot(s=>{const all=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>String(b.date).localeCompare(a.date)||num(b.createdAtMs)-num(a.createdAtMs));allBuys=all.filter(x=>x.type!=='ship');allShips=all.filter(x=>x.type==='ship');applyLine()},err),
+    db.collection('kids_settings').doc('tools').onSnapshot(d=>{TOOLS=d.exists?d.data():{};if(!document.activeElement||!document.activeElement.closest('#toolBody'))renderTool()},err),
     db.collection('kids_settings').doc('cart').onSnapshot(d=>{CART=(d.exists&&d.data().lines)||{};renderCat()},err),
     db.collection('kids_settings').doc('site').onSnapshot(d=>{if(d.exists)settings={...settings,...d.data()};$('sRate').value=settings.rate;renderPh();$('sAlert').value=settings.rsAlert||'';$('sCover').value=settings.rsCover||'';renderStock();renderFw()},err)
   );
 });
 
 // ===== 畫面 =====
-function render(){renderStock();renderBuys();renderShips();renderStalls();renderOverview()}
+function render(){if(typeof renderTool==='function')setTimeout(renderTool,0);renderStock();renderBuys();renderShips();renderStalls();renderOverview()}
 function renderStock(){
   const kw=$('q').value.trim().toLowerCase();
   const total=products.reduce((s,p)=>s+(p.units||[]).reduce((a,u)=>a+stockOf(p,u),0),0);
@@ -1265,6 +1278,119 @@ Object.assign(ACT,{
   async phAdd(){const zh=$('phZh').value.trim(),ko=$('phKo').value.trim();if(!ko)return toast('請填韓文內容');const my=[...(settings.phrases||[]),{zh:zh||'自訂',ko}];try{await db.collection('kids_settings').doc('site').set({phrases:my},{merge:true});$('phZh').value=$('phKo').value='';toast('已新增')}catch(e){toast('儲存失敗：'+e.message)}},
   async phDel(i){if(!confirm('刪除這句？'))return;const my=(settings.phrases||[]).filter((_,j)=>j!=i);await db.collection('kids_settings').doc('site').set({phrases:my},{merge:true});toast('已刪除')}
 });
+// ===== 創業工具：10 張表 =====
+let TOOLS={},curTool='pos';
+const TL=[['pos','🎯','定位速寫表','要賣給誰，先寫下來'],['fund','💰','資金分配表','手上的錢先分好'],['calc','🧮','賺多少計算表','韓幣＋重量→成本售價'],['mix','🧩','款數搭配表','第一批要幾款幾件'],['buy','📝','叫貨筆記表','誰叫了、到哪了'],['chk','✅','上架自檢表','上架前最後檢查'],['rec','💳','收單對帳表','誰付了、誰寄了'],['cus','💗','回頭客名單','買過的客人記下來'],['pnl','📈','每月損益表','月底結一次'],['flow','🗺️','開賣流程表','一關一關走']];
+const tget=(p,d)=>{let o=TOOLS;for(const k of p){if(o==null||typeof o!=='object')return d;o=o[k]}return o==null?d:o};
+function tset(p,v){const o={};let c=o;p.forEach((k,i)=>{if(i===p.length-1)c[k]=v;else c=c[k]={}});let t=TOOLS;p.forEach((k,i)=>{if(i===p.length-1)t[k]=v;else t=t[k]=(t[k]&&typeof t[k]==='object')?t[k]:{}});db.collection('kids_settings').doc('tools').set(o,{merge:true}).catch(e=>toast('儲存失敗：'+e.message))}
+const tin=(p,ph,type,ext)=>`<input data-tp='${esc(JSON.stringify(p))}' value="${esc(tget(p,''))}" placeholder="${esc(ph||'')}" ${type?`type="${type}" inputmode="decimal"`:''} ${ext||''}>`;
+const tta=(p,ph)=>`<textarea class="grow" rows="2" data-tp='${esc(JSON.stringify(p))}' placeholder="${esc(ph||'')}">${esc(tget(p,''))}</textarea>`;
+const tck=(p,lbl)=>`<label class="agechk" style="margin:4px 0;display:flex"><input type="checkbox" data-tp='${esc(JSON.stringify(p))}' ${tget(p,false)?'checked':''}> ${lbl}</label>`;
+const ym=d=>String(d||'').slice(0,7);
+function renderToolMenu(){$('toolMenu').innerHTML=TL.map(([k,i,n,d])=>`<button class="btn line" data-act="toolOpen" data-id="${k}" style="text-align:left;padding:10px"><b>${i} ${n}</b><div class="muted" style="font-weight:400">${d}</div></button>`).join('')}
+function renderTool(){
+  if(!$('s-tool').classList.contains('on'))return;
+  const t=TL.find(x=>x[0]===curTool);$('toolTitle').textContent=t[1]+' '+t[2];
+  const R=num(settings.rate)||41.5;let h='';
+  if(curTool==='pos'){
+    const F=[['one','品牌一句話','把韓國日常裡的小小好日子，帶到台灣家庭'],['who','主要客群','20–40 歲媽媽，喜歡幫小孩穿搭、親子同款'],['age','寶貝年齡','0–3 歲約 70%、4–7 歲約 30%'],['style','風格關鍵字','奶油白、米色、燕麥；柔軟、乾淨、有質感'],['price','價格帶','上衣 NT$___～___、褲子 NT$___～___'],['ch','銷售通路','Instagram、蝦皮（主）、小紅書（輔）'],['diff','跟別人不一樣的地方','例如：韓國當季、整套穿搭建議、尺寸講得很清楚'],['no','不賣什麼','例如：太花俏的螢光色、有抽繩的嬰兒款']];
+    h=`<p class="muted">寫好之後選款、拍照、寫文案都照這張走，就不會亂批。</p>`+F.map(([k,l,ph])=>`<label>${l}</label>${tta(['pos',k],ph)}`).join('');
+  }else if(curTool==='fund'){
+    const tot=num(tget(['fund','total'],0));
+    const D=[['第一批進貨',50],['運費、服務費、關稅',10],['包材、吊牌',5],['拍照道具',5],['廣告、推廣',10],['平台、金流手續費',5],['預備金（補貨、意外）',15]];
+    const rows=D.map(([n,p],i)=>{const pct=num(tget(['fund','pct',i],p)),plan=Math.round(tot*pct/100),act=num(tget(['fund','act',i],0));return {n,i,pct,plan,act}});
+    const sp=rows.reduce((a,r)=>a+r.pct,0),pa=rows.reduce((a,r)=>a+r.act,0);
+    h=`<label>創業資金總額 NT$</label>${tin(['fund','total'],'例如 50000','number')}
+    <div class="box" style="margin-top:10px">${rows.map(r=>`<div class="row" style="flex-wrap:wrap"><span style="flex:1 1 100%;font-weight:600">${r.n}</span><span style="width:70px">${tin(['fund','pct',r.i],r.pct,'number','style="padding:6px"')}</span><span>% ＝ 預算 <b>${nt(r.plan)}</b></span><span style="width:110px">${tin(['fund','act',r.i],'實際花費','number','style="padding:6px"')}</span><span class="muted" style="color:${r.act>r.plan?'var(--warn)':'var(--ok)'}">${r.act?(r.act>r.plan?'超支 ':'剩 ')+nt(Math.abs(r.plan-r.act)):''}</span></div>`).join('<hr style="border:0;border-top:1px solid var(--bd);margin:6px 0">')}
+    <div class="row" style="font-weight:700;margin-top:8px"><span>比例合計 ${sp}%${sp!==100?' ⚠ 要等於 100%':''}</span><span>已花 ${nt(pa)}／剩 ${nt(tot-pa)}</span></div></div>
+    <p class="muted">建議預備金至少留 10–15%，第一批進貨不要超過一半。</p>`;
+  }else if(curTool==='calc'){
+    const W=[['嬰兒 0–3 歲',0.2],['大童服飾',0.3],['成人服飾',0.5],['冬天大衣',1],['飾品、髮飾',0.05],['包包',0.8],['鞋子',1]];
+    const krwv=num(tget(['calc','krw'],15000)),w=num(tget(['calc','w'],0.2)),svc=num(tget(['calc','svc'],3)),shp=num(tget(['calc','ship'],5000)),duty=num(tget(['calc','duty'],35)),rate=num(tget(['calc','rate'],R));
+    const cost=(krwv*(1+svc/100)+w*shp)/rate+w*duty;
+    h=`<div class="two"><div><label>商品韓幣</label>${tin(['calc','krw'],'15000','number')}</div><div><label>預估重量 kg</label>${tin(['calc','w'],'0.2','number')}</div></div>
+    <div class="pills" style="margin-top:6px">${W.map(([n,v])=>`<button class="pill ${w==v?'on':''}" data-act="calcW" data-id="${v}">${n} ${v}kg</button>`).join('')}</div>
+    <div class="two"><div><label>貨運行服務費 %</label>${tin(['calc','svc'],'3','number')}</div><div><label>國際運費 ₩/kg</label>${tin(['calc','ship'],'5000','number')}</div></div>
+    <div class="two"><div><label>關稅 NT$/kg</label>${tin(['calc','duty'],'35','number')}</div><div><label>匯率（1 台幣＝?韓幣）</label>${tin(['calc','rate'],String(R),'number')}</div></div>
+    <div class="box" style="margin-top:10px;background:var(--light)">每件成本 <b style="font-size:20px">${nt(cost)}</b>
+    <div class="muted">＝（₩${krwv.toLocaleString()}×${(1+svc/100).toFixed(2)}＋₩${Math.round(w*shp).toLocaleString()} 運費）÷${rate}＋關稅 ${nt(w*duty)}</div>
+    ${[1.5,1.7,2,2.5].map(m=>`<div class="row"><span>× ${m} 倍</span><span>售價 <b>${nt(Math.ceil(cost*m/10)*10)}</b></span><span class="muted">賺 ${nt(Math.ceil(cost*m/10)*10-cost)}</span></div>`).join('')}</div>
+    <p class="muted">t-shirt 利潤約 NT$100–200、褲裙 NT$300–500、外套 NT$500–1000 可當參考；越重的商品利潤抓越高。</p>`;
+  }else if(curTool==='mix'){
+    const bud=num(tget(['mix','bud'],0)),avg=num(tget(['mix','avg'],350)),per=num(tget(['mix','per'],3));
+    const pcs=avg?Math.floor(bud/avg):0,sty=per?Math.floor(pcs/per):0;
+    const C=[['上衣／T恤',30],['褲子／裙子',25],['外套／背心',15],['連身衣／洋裝',15],['配件（帽、襪、髮飾）',15]];
+    const cs=C.map(([n,p],i)=>{const pc=num(tget(['mix','c',i],p));return {n,i,pc,st:Math.round(sty*pc/100)}});
+    h=`<div class="two"><div><label>這批預算 NT$</label>${tin(['mix','bud'],'例如 10000','number')}</div><div><label>平均每件成本 NT$</label>${tin(['mix','avg'],'350','number')}</div></div>
+    <label>每款叫幾件（例如 3 個尺寸各 1）</label>${tin(['mix','per'],'3','number')}
+    <div class="box" style="margin-top:10px;background:var(--light)">大約可以叫 <b style="font-size:18px">${pcs}</b> 件、<b style="font-size:18px">${sty}</b> 款</div>
+    <div class="box">${cs.map(c=>`<div class="row"><span style="flex:1">${c.n}</span><span style="width:64px">${tin(['mix','c',c.i],c.pc,'number','style="padding:6px"')}</span><span>% → <b>${c.st}</b> 款</span></div>`).join('')}
+    <p class="muted" style="margin-top:6px">年齡建議：0–3 歲約 7 成（12M～L），4–7 歲約 3 成。第一批每款 1 色 3 個尺寸、各 1 件，賣得好再補。</p></div>`;
+  }else if(curTool==='buy'){
+    const ord=buys.filter(b=>b.status!=='arrived').sort((a,b)=>String(a.date).localeCompare(b.date));
+    const days=d=>Math.floor((Date.parse(today())-Date.parse(d))/864e5);
+    const byS={};ord.forEach(b=>{const k=stallName(b.stallId);byS[k]=byS[k]||{n:0,p:0,w:0};byS[k].n++;byS[k].p+=sumQty(b);byS[k].w+=sumQty(b)*num(b.krw)});
+    const arrM=buys.filter(b=>b.status==='arrived'&&ym(b.date)===ym(today()));
+    h=`<div class="stats"><div><b>${ord.length}</b><small>待到貨筆數</small></div><div><b>${ord.reduce((a,b)=>a+sumQty(b),0)}</b><small>待到貨件數</small></div><div><b>${arrM.length}</b><small>本月已到貨</small></div></div>
+    ${Object.keys(byS).length?`<div class="box"><b>依檔口</b>${Object.entries(byS).map(([k,v])=>`<div class="row"><span>🏪 ${esc(k)}</span><span>${v.n} 筆・${v.p} 件・${krw(v.w)}</span></div>`).join('')}</div>`:''}
+    ${ord.map(b=>{const d=days(b.date);return `<div class="box"><div class="row"><b>${esc(b.productName)}</b><span class="st ordered" style="${d>=10?'background:#f6dcd5;color:var(--warn)':''}">已叫 ${d} 天</span></div><div class="row muted"><span>🏪 ${esc(stallName(b.stallId))}・${esc(b.date)}</span><span>${sumQty(b)} 件</span></div>${b.note?`<div class="muted">📝 ${esc(b.note)}</div>`:''}</div>`}).join('')||'<div class="empty">目前沒有待到貨的叫貨 👍</div>'}
+    <p class="muted">超過 10 天還沒到的會標紅，記得問檔口或貨運行。到貨請到「叫貨」頁按「到貨入庫」。</p>`;
+  }else if(curTool==='chk'){
+    const IT=['照片齊全：正面、背面、細節、實穿或掛拍','尺寸表＋建議身高體重（提醒 1–2 cm 誤差）','材質、觸感已實際確認（沒確認的不寫）','洗滌提醒寫好','中文標示：成分、產地、進口商','0–3 歲安全：沒有抽繩、小配件牢固','售價已算（成本 × 倍數）','文案五要素：情境開頭、材質、尺寸、搭配、洗滌','蝦皮分類、IG 標籤設好','庫存數量和網站一致'];
+    const ps=products.slice().sort((a,b)=>String(b.sku||'').localeCompare(String(a.sku||'')));
+    h=`<p class="muted">每個款式上架前逐項打勾，全部勾完才按上架。</p>`+(ps.length?ps.map(p=>{const done=IT.filter((_,i)=>tget(['chk',p.id,i],false)).length;const open=tget(['chkOpen'],'')===p.id;
+      return `<div class="box"><div class="row" data-act="chkOpen" data-id="${p.id}" style="cursor:pointer"><b>${p.sku?`<span class="muted">${esc(p.sku)}</span> `:''}${esc(p.name)}</b><span class="st ${done===IT.length?'arrived':'ordered'}">${done}/${IT.length}</span></div>${open?IT.map((t,i)=>tck(['chk',p.id,i],t)).join(''):''}</div>`}).join(''):'<div class="empty">還沒有款式</div>');
+  }else if(curTool==='rec'){
+    const m=tget(['recM'],ym(today()));const months=[...new Set([ym(today()),...ships.map(h=>ym(h.date))])].filter(Boolean).sort().reverse();
+    const L=ships.filter(h=>ym(h.date)===m);
+    const unpaid=L.filter(h=>!tget(['rec',h.id,'paid'],false)),unsent=L.filter(h=>!tget(['rec',h.id,'sent'],false));
+    h=`<select data-act2="recM">${months.map(x=>`<option ${x===m?'selected':''}>${x}</option>`).join('')}</select>
+    <div class="stats" style="margin-top:10px"><div><b>${L.length}</b><small>本月訂單</small></div><div><b style="color:var(--warn)">${unpaid.length}</b><small>未收款 ${nt(unpaid.reduce((a,h)=>a+sumQty(h)*num(h.nt),0))}</small></div><div><b style="color:var(--warn)">${unsent.length}</b><small>未寄出</small></div></div>
+    ${L.map(h=>`<div class="box"><div class="row"><b>👤 ${esc(h.buyer||'未填買家')}${h.orderNo?' ・#'+esc(h.orderNo):''}</b><span>${nt(sumQty(h)*num(h.nt))}</span></div><div class="muted">${esc(h.date)}・${esc(h.platform||'')}・${esc(h.productName)} ${sumQty(h)} 件</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${tck(['rec',h.id,'paid'],'已收款')}${tck(['rec',h.id,'sent'],'已寄出')}</div>${tin(['rec',h.id,'track'],'物流單號（選填）')}</div>`).join('')||'<div class="empty">這個月還沒有出貨紀錄</div>'}`;
+  }else if(curTool==='cus'){
+    const M={};ships.forEach(h=>{const b=String(h.buyer||'').trim();if(!b)return;M[b]=M[b]||{n:0,p:0,w:0,last:'',pl:new Set()};const o=M[b];o.n++;o.p+=sumQty(h);o.w+=sumQty(h)*num(h.nt);if(h.date>o.last)o.last=h.date;o.pl.add(h.platform)});
+    const L=Object.entries(M).sort((a,b)=>b[1].w-a[1].w);
+    h=`<p class="muted">從出貨紀錄的「買家」自動整理，買 2 次以上會標「回頭客」。可以記寶貝尺寸、喜好，下次好開口。</p>
+    <div class="stats"><div><b>${L.length}</b><small>客人數</small></div><div><b>${L.filter(([,o])=>o.n>=2).length}</b><small>回頭客</small></div><div><b>${L.length?nt(L.reduce((a,[,o])=>a+o.w,0)/L.length):'—'}</b><small>平均消費</small></div></div>
+    ${L.map(([b,o])=>{const k=b.replace(/[.\/#$\[\]]/g,'_');return `<div class="box"><div class="row"><b>👤 ${esc(b)} ${o.n>=2?'<span class="tag">💗 回頭客</span>':''}</b><span>${nt(o.w)}</span></div><div class="muted">${o.n} 次・${o.p} 件・最近 ${esc(o.last)}・${esc([...o.pl].join('、'))}</div>${tin(['cus',k,'note'],'備註：寶貝年齡尺寸、喜歡的風格、生日…')}</div>`}).join('')||'<div class="empty">出貨紀錄填了買家後，這裡就會出現</div>'}`;
+  }else if(curTool==='pnl'){
+    const m=tget(['pnlM'],ym(today()));const months=[...new Set([ym(today()),...ships.map(h=>ym(h.date)),...buys.map(b=>ym(b.date))])].filter(Boolean).sort().reverse();
+    const S=ships.filter(h=>ym(h.date)===m),rev=S.reduce((a,h)=>a+sumQty(h)*num(h.nt),0),cogs=S.reduce((a,h)=>a+sumQty(h)*shipCost(h),0);
+    const buyOut=buys.filter(b=>ym(b.date)===m).reduce((a,b)=>a+unitCost(b)*sumQty(b),0);
+    const E=[['plat','平台、金流手續費'],['ship','寄件運費、包材'],['ads','廣告、推廣'],['other','其他（拍照道具、雜支）']];
+    const ex=E.reduce((a,[k])=>a+num(tget(['pnl',m,k],0)),0),net=rev-cogs-ex;
+    h=`<select data-act2="pnlM">${months.map(x=>`<option ${x===m?'selected':''}>${x}</option>`).join('')}</select>
+    <div class="box" style="margin-top:10px">
+    <div class="row"><span>營收（出貨售價）</span><b>${nt(rev)}</b></div>
+    <div class="row"><span>− 商品成本（賣掉的）</span><span>${nt(cogs)}</span></div>
+    <div class="row" style="border-top:1px solid var(--bd);padding-top:4px"><span>毛利</span><b>${nt(rev-cogs)}</b></div>
+    ${E.map(([k,n])=>`<div class="row"><span>− ${n}</span><span style="width:120px">${tin(['pnl',m,k],'NT$ 0','number','style="padding:6px;text-align:right"')}</span></div>`).join('')}
+    <div class="row" style="border-top:2px solid var(--text);padding-top:6px;font-size:16px"><b>淨利</b><b style="color:${net>=0?'var(--ok)':'var(--warn)'}">${nt(net)}</b></div>
+    <div class="muted">淨利率 ${rev?Math.round(net/rev*100):0}%</div></div>
+    <div class="box"><div class="row"><span>本月叫貨支出（現金流）</span><span>${nt(buyOut)}</span></div><p class="muted">叫貨是先付的錢，會變成庫存；損益只算「賣掉的」成本，所以兩個數字不一樣是正常的。</p></div>`;
+  }else if(curTool==='flow'){
+    const ST=[['寫好定位速寫表','知道要賣給誰、什麼風格'],['分配資金','進貨不超過一半，留預備金'],['找檔口、加好友','Kakao／WeChat，記進「檔口」'],['拿價目表、選款','放進「型錄」，用款數搭配表抓數量'],['算成本、定售價','用賺多少計算表'],['下單','傳訂單＋貨運行名片＋主動要收據＋問取貨天數'],['收據轉給貨運行','網站按「轉成叫貨紀錄」'],['到貨點貨入庫','數量、瑕疵、尺寸確認後按「到貨入庫」'],['拍照','展示架掛拍、細節、實穿'],['上架自檢','上架自檢表全部打勾'],['IG／蝦皮上架','文案五要素、標籤'],['收單、對帳、出貨','出貨紀錄＋收單對帳表'],['記回頭客','回頭客名單寫備註'],['月底結損益','每月損益表填費用']];
+    const done=ST.filter((_,i)=>tget(['flow',i],false)).length;
+    h=`<div class="box" style="background:var(--light)">進度 <b>${done}/${ST.length}</b><div style="height:8px;background:#fff;border-radius:4px;margin-top:6px"><div style="height:8px;width:${done/ST.length*100}%;background:var(--ok);border-radius:4px"></div></div></div>`+ST.map(([t,d],i)=>`<div class="box" style="padding:8px 12px">${tck(['flow',i],`<b>${i+1}. ${t}</b>`)}<div class="muted" style="margin-left:26px">${d}</div></div>`).join('');
+  }
+  $('toolBody').innerHTML=h;
+  setTimeout(()=>document.querySelectorAll('#toolBody textarea.grow').forEach(fitTA),0);
+}
+Object.assign(ACT,{
+  toolOpen(id){curTool=id;ACT.nav('tool');renderTool()},
+  toolBack(){ACT.nav('set',null,document.querySelector('nav button[data-id="set"]'))},
+  calcW(v){tset(['calc','w'],Number(v));renderTool()},
+  chkOpen(id){tset(['chkOpen'],tget(['chkOpen'],'')===id?'':id);renderTool()}
+});
+$('toolBody').addEventListener('change',e=>{
+  const el=e.target;if(el.dataset.act2){tset([el.dataset.act2],el.value);return renderTool()}
+  if(!el.dataset.tp)return;const p=JSON.parse(el.dataset.tp);
+  const v=el.type==='checkbox'?el.checked:(el.type==='number'?(el.value===''?'':Number(el.value)):el.value);
+  tset(p,v);if(el.type==='checkbox'||el.type==='number'||curTool==='fund')renderTool();
+});
+renderToolMenu();
+
 function cartBar(){let c=0,w=0;for(const[k,q]of Object.entries(CART)){const[b,n]=k.split('|');const d=cget(b,n);if(d){c+=q;w+=q*d.pr}}$('cc').textContent=c;$('cw').textContent=krw(w);$('cbar').style.display=c&&$('s-cat').classList.contains('on')?'':'none'}
 function renderCat(){
   if(!CAT.length)return;
