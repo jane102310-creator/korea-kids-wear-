@@ -1259,7 +1259,7 @@ function renderCat(){
 }
 async function saveCart(){try{await db.collection('kids_settings').doc('cart').set({lines:CART,updatedAtMs:Date.now()})}catch(e){toast('訂單儲存失敗：'+e.message)}}
 function setCart(k,q){q=Math.max(0,parseInt(q)||0);if(q)CART[k]=q;else delete CART[k];saveCart();renderCat();if($('m-cart').classList.contains('on'))renderCart()}
-function cartText(b){const L=Object.entries(CART).filter(([k])=>k.startsWith(b+'|'));let t='안녕하세요! 대만 아동복 기쁜날(好日子)입니다 😊\n아래와 같이 주문 부탁드립니다.\n\n';L.forEach(([k,q],i)=>{const[,n,c,z]=k.split('|');const d=cget(b,n);t+=`${i+1}) ${d.ko} / ${KOC[c]||c} / ${z} / ${q}장\n`});const w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);t+=`\n총 ${L.reduce((a,[,q])=>a+q,0)}장 / ₩${w.toLocaleString()}\n재고 확인 후 결제 금액 알려주세요. 감사합니다! 🤍`;return t}
+function cartText(b){const L=Object.entries(CART).filter(([k])=>k.startsWith(b+'|'));let t='안녕하세요! 대만 아동복 기쁜날(好日子)입니다 😊\n아래와 같이 주문 부탁드립니다.\n\n';L.forEach(([k,q],i)=>{const[,n,c,z]=k.split('|');const d=cget(b,n);t+=`${i+1}) ${d.ko} / ${/^一組/.test(c)?'1세트(3컬러)':(KOC[c]||c)} / ${z} / ${q}장\n`});const w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);t+=`\n총 ${L.reduce((a,[,q])=>a+q,0)}장 / ₩${w.toLocaleString()}\n재고 확인 후 결제 금액 알려주세요. 감사합니다! 🤍`;return t}
 function renderCart(){
   const bs=[...new Set(Object.keys(CART).map(k=>k.split('|')[0]))].filter(b=>CB[b]);
   $('cartList').innerHTML=bs.length?bs.map(b=>{const L=Object.entries(CART).filter(([k])=>k.startsWith(b+'|')&&cget(b,k.split('|')[1]));const pcs=L.reduce((a,[,q])=>a+q,0),sty=new Set(L.map(([k])=>k.split('|')[1])).size,w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);const st=cstall(b);
