@@ -573,11 +573,12 @@ function renderBuys(){
   $('buyList').innerHTML=list.length?list.map(b=>{
     const arrived=b.status==='arrived';
     const q=Object.entries(b.qty||{}).filter(([,n])=>num(n)>0).map(([u,n])=>`${esc(u)}×${n}`).join('　');
-    return `<div class="box"><div class="row"><b>${skuOf(b.productId)?`<span class="muted">${esc(skuOf(b.productId))}</span> `:''}${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
+    const pim=(allProducts.find(x=>x.id===b.productId)||{}).image;
+    return `<div class="box"><div style="display:flex;gap:12px;align-items:flex-start">${pim?`<img src="${esc(pim)}" alt="" loading="lazy" data-act="editProd" data-id="${b.productId}" style="width:84px;height:84px;flex:none;object-fit:cover;background:#fff;border-radius:8px;cursor:pointer">`:''}<div style="flex:1;min-width:0"><div class="row"><b>${skuOf(b.productId)?`<span class="muted">${esc(skuOf(b.productId))}</span> `:''}${esc(b.productName)}</b><span class="st ${arrived?'arrived':'ordered'}">${arrived?'已到貨':'已叫貨'}</span></div>
       <div class="row muted"><span>${esc(stallName(b.stallId))}</span><span>${esc(b.date)}</span></div>
       <div class="row"><span>${q||'—'}</span><span>${krw(sumQty(b)*num(b.krw))}</span></div>
       <div class="row muted"><span>匯率 ${rateOf(b)}${num(b.extraNt)?'・運費等 '+nt(b.extraNt):''}${b.fw?'・'+esc(b.fw.name)+' '+esc(b.fw.m)+(b.fw.kg?' '+b.fw.kg+'kg':''):''}</span><span>成本 ${nt(unitCost(b))}/件・共 ${nt(unitCost(b)*sumQty(b))}</span></div>
-      ${b.note?`<div class="muted">備註：${esc(b.note)}</div>`:''}
+      ${b.note?`<div class="muted">備註：${esc(b.note)}</div>`:''}</div></div>
       <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn line sm" data-act="editBuy" data-id="${b.id}">編輯</button>${arrived?`<button class="btn line sm" data-act="unarrive" data-id="${b.id}">改回未到</button>`:`<button class="btn green sm" data-act="arrive" data-id="${b.id}">到貨入庫</button>`}</div></div>`;
   }).join(''):'<div class="empty">沒有紀錄</div>';
 }
