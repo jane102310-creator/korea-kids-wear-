@@ -1249,7 +1249,7 @@ $('bProd').addEventListener('change',()=>{
 $('q').addEventListener('input',renderStock);
 // ===== 型錄：檔口價目表 → 選款 → 一鍵轉成叫貨 =====
 let CAT=[],catBrand='all',catCat='全部',catPick=false,CART={};
-const CB={vb:{name:'Valubebe 벨루베베',code:'VB',min:'首次交易至少 2 款、3 件以上'},ao:{name:'Aosta 아오스타',code:'AO',min:''}};
+const CB={vb:{name:'Valubebe 벨루베베',code:'VB',min:'首次交易至少 2 款、3 件以上'},ao:{name:'Aosta 아오스타',code:'AO',min:''},el:{name:'ELOV 엘로브',code:'EL',min:'每款至少 2 件'}};
 const CCATS=['全部','連身衣','外套背心','上衣','洋裝','褲裙','帽子配件','襪子','鞋子'];
 const CMAP={'連身衣':'其他','外套背心':'外套/針織','上衣':'上衣/T恤','洋裝':'其他','褲裙':'褲子/裙裝','帽子配件':'配件/鞋帽','襪子':'配件/鞋帽','鞋子':'配件/鞋帽'};
 const KOC={'象牙白':'아이보리','象牙':'아이보리','米色':'베이지','米':'베이지','咖啡':'브라운','深咖啡':'진브라운','奶油':'크림','黑':'블랙','灰':'그레이','淺灰':'연그레이','炭灰':'차콜','麻灰':'멜란그레이','深灰':'다크그레이','粉':'핑크','深粉':'진핑크','紅':'레드','藍':'블루','淺藍':'소라','海軍藍':'네이비','紫':'퍼플','淺紫':'연보라','橄欖綠':'올리브','橄欖':'올리브','綠':'그린','芥末黃':'머스터드','黃':'옐로','卡其':'카키','駝色':'카멜','酒紅':'와인','磚紅':'브릭','紅格':'레드체크','綠格':'그린체크','藍綠':'블루그린','焦糖':'카라멜','中藍':'중청','單色':'원컬러','單色（奶油）':'원컬러'};
@@ -1257,7 +1257,7 @@ const copt=v=>String(v).split('、').map(x=>x.replace(/共.*$/,'').trim()).filte
 const csz=d=>String(d.sz).replace(/（.*?）/g,'').split('・').map(x=>x.trim().split(' ')[0]).filter(Boolean);
 const cget=(b,n)=>CAT.find(x=>x.b===b&&x.n==n);
 const cstall=b=>allStalls.find(s=>String(s.code||'').toUpperCase()===CB[b].code);
-const SZO=['6M','12M','18M','S','M','L','XL','XXL','Free','12호','13호'];
+const SZO=['XS','6M','12M','18M','S','M','L','XL','XXL','Free','12호','13호'];
 const cartSort=L=>L.slice().sort(([a],[b])=>{const A=a.split('|'),B=b.split('|');return (+A[1]-+B[1])||A[2].localeCompare(B[2],'zh-Hant')||((SZO.indexOf(A[3])+99)%99-(SZO.indexOf(B[3])+99)%99)});
 const crate=()=>num(settings.rate)||41.5;
 fetch('catalog/items.json').then(r=>r.json()).then(j=>{CAT=j;renderCat()}).catch(()=>{$('catInfo').textContent='型錄載入失敗，請重新整理'});
@@ -1411,12 +1411,13 @@ function renderCat(){
 }
 async function saveCart(){try{await db.collection('kids_settings').doc('cart').set({lines:CART,updatedAtMs:Date.now()})}catch(e){toast('訂單儲存失敗：'+e.message)}}
 function setCart(k,q){q=Math.max(0,parseInt(q)||0);if(q)CART[k]=q;else delete CART[k];saveCart();renderCat();if($('m-cart').classList.contains('on'))renderCart()}
-function cartText(b){const L=cartSort(Object.entries(CART).filter(([k])=>k.startsWith(b+'|')));let t='안녕하세요! 대만 아동복 기쁜날(好日子)입니다 😊\n아래와 같이 주문 부탁드립니다.\n\n';L.forEach(([k,q],i)=>{const[,n,c,z]=k.split('|');const d=cget(b,n);t+=`${i+1}) ${d.ko} / ${/^一組/.test(c)?'1세트(3컬러)':(KOC[c]||c)} / ${z} / ${q}장\n`});const w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);t+=`\n총 ${L.reduce((a,[,q])=>a+q,0)}장 / ₩${w.toLocaleString()}\n재고 확인 후 결제 금액 알려주세요. 감사합니다! 🤍`;return t}
+function cartText(b){const L=cartSort(Object.entries(CART).filter(([k])=>k.startsWith(b+'|')));let t='안녕하세요! 대만 아동복 기쁜날(好日子)입니다 😊\n아래와 같이 주문 부탁드립니다.\n\n';L.forEach(([k,q],i)=>{const[,n,c,z]=k.split('|');const d=cget(b,n);t+=`${i+1}) ${d.ko} / ${/^一組/.test(c)?'1세트(3컬러)':(KOC[c]||((c.match(/[가-힣]+/g)||[c]).join(' ')))} / ${z} / ${q}장\n`});const w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);t+=`\n총 ${L.reduce((a,[,q])=>a+q,0)}장 / ₩${w.toLocaleString()}\n재고 확인 후 결제 금액 알려주세요. 감사합니다! 🤍`;return t}
 function renderCart(){
   const bs=[...new Set(Object.keys(CART).map(k=>k.split('|')[0]))].filter(b=>CB[b]);
   $('cartList').innerHTML=bs.length?bs.map(b=>{const L=cartSort(Object.entries(CART).filter(([k])=>k.startsWith(b+'|')&&cget(b,k.split('|')[1])));const pcs=L.reduce((a,[,q])=>a+q,0),sty=new Set(L.map(([k])=>k.split('|')[1])).size,w=L.reduce((a,[k,q])=>a+q*cget(b,k.split('|')[1]).pr,0);const st=cstall(b);
     return `<div class="box"><b>${esc(CB[b].name)}</b>${L.map(([k,q])=>{const[,n,c,z]=k.split('|');const d=cget(b,n);return `<div class="cl"><img src="${esc(d.img)}" alt=""><div><b>#${n} ${esc(d.zh)}</b><div style="display:flex;gap:4px;margin-top:3px"><select class="ccc" data-ck="${esc(k)}" style="padding:4px 6px;font-size:14px">${copt(d.col).map(x=>`<option ${x===c?'selected':''}>${esc(x)}</option>`).join('')}</select><select class="ccz" data-ck="${esc(k)}" style="padding:4px 6px;font-size:14px;width:auto">${csz(d).map(x=>`<option ${x===z?'selected':''}>${esc(x)}</option>`).join('')}</select></div><div class="muted">${krw(d.pr)}／件</div></div><div class="cq"><button data-act="cartQ" data-id="${esc(k)}" data-u="-1">−</button><input value="${q}" data-ck="${esc(k)}" inputmode="numeric"><button data-act="cartQ" data-id="${esc(k)}" data-u="1">+</button></div></div>`}).join('')}
     <div class="row" style="border-top:1px solid var(--bd);padding-top:6px;font-weight:700"><span>${sty} 款 ${pcs} 件</span><span>${krw(w)}（≈${nt(w/crate())}）</span></div>
+    ${b==='el'&&(()=>{const m={};L.forEach(([k,q])=>{const n=k.split('|')[1];m[n]=(m[n]||0)+q});return Object.values(m).some(v=>v<2)})()?`<div class="muted" style="color:var(--warn)">⚠ ${CB.el.min}</div>`:''}
     ${b==='vb'&&(sty<2||pcs<3)?`<div class="muted" style="color:var(--warn)">⚠ ${CB.vb.min}</div>`:''}
     ${st?'':`<div class="muted" style="color:var(--warn)">⚠ 還沒有代號 ${CB[b].code} 的檔口，轉叫貨前請先新增</div>`}
     <button class="btn big line" data-act="cartCopy" data-id="${b}">📋 複製韓文訂單</button>
@@ -1437,7 +1438,7 @@ Object.assign(ACT,{
     const d0=today(),pre=String(st.code).toUpperCase()+'-'+d0.slice(2,4)+d0.slice(5,7)+'-';
     let mx=allProducts.filter(p=>String(p.sku||'').startsWith(pre)).reduce((m,p)=>Math.max(m,parseInt(String(p.sku).slice(pre.length))||0),0);
     const batch=db.batch(),rate=crate();let made=0;
-    Object.values(groups).forEach(g=>{const d=cget(b,g.n),ck=b+'|'+g.n+'|'+g.c,nm=`${d.zh}（${g.c}）`;
+    Object.values(groups).forEach(g=>{const d=cget(b,g.n),ck=b+'|'+g.n+'|'+g.c,nm=`${d.zh}（${g.c.replace(/\s*[가-힣]+/g,'').trim()||g.c}）`;
       const p=allProducts.find(x=>x.catKey===ck);let pid;
       if(p)pid=p.id;else{const ref=db.collection('kids_products').doc();pid=ref.id;made++;
         batch.set(ref,{line:'kids',catKey:ck,sku:pre+String(++mx).padStart(3,'0'),name:nm,category:CMAP[d.cat]||'其他',stallId:st.id,units:csz(d),krw:d.pr,nt:0,image:d.img,note:`${d.ko}・型錄 ${b.toUpperCase()} #${d.n}`,stock:{},createdAt:FV.serverTimestamp()})}
